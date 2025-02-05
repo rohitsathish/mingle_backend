@@ -1,0 +1,888 @@
+{
+  "events": [
+    {
+      "name": "Documentary Screening: Sundaram Tagore's Film",
+      "categories": [
+        "Movies & Screenings"
+      ],
+      "tags": [
+        "screening",
+        "documentary",
+        "film",
+        "art",
+        "museum"
+      ],
+      "summary": "A screening of Sundaram Tagore’s documentary linked to Eckart Muthesius & Manik Bagh’s exhibit at MAP.",
+      "notes_to_admin": {
+        "cost": false,
+        "note": "No explicit cost mentioned."
+      },
+      "cost": 0,
+      "source_whatsapp_group": "Putting Scene - 15",
+      "area": "Kasturba Road",
+      "venue_address": "Museum of Art & Photography, Kasturba Road",
+      "post_datetime": "2025-01-22T17:09:00+05:30",
+      "event_datetime": "2025-01-25T17:00:00+05:30",
+      "is_update": false,
+      "is_cancelled": false,
+      "links": {
+        "info_link": "https://bit.ly/40pJH3Q",
+        "reg_link": null,
+        "pay_link": null
+      }
+    },
+    {
+      "name": "Concert by Pt. Vishwa Mohan Bhatt & Ricky Kej",
+      "categories": [
+        "Music & Concerts"
+      ],
+      "tags": [
+        "classical",
+        "mohan veena",
+        "live music",
+        "ricky kej",
+        "grammy"
+      ],
+      "summary": "A special mohan veena and folk concert by Grammy winners Pt. Vishwa Mohan Bhatt and Ricky Kej.",
+      "notes_to_admin": {
+        "cost": false,
+        "note": "Date inferred as Jan 24, 7 PM. No cost mentioned."
+      },
+      "cost": 0,
+      "source_whatsapp_group": "Putting Scene - 15",
+      "area": "Konanakunte",
+      "venue_address": "Prestige Centre for Performing Arts, Konanakunte",
+      "post_datetime": "2025-01-22T17:09:00+05:30",
+      "event_datetime": "2025-01-24T19:00:00+05:30",
+      "is_update": false,
+      "is_cancelled": false,
+      "links": {
+        "info_link": "https://bit.ly/40qCJM3",
+        "reg_link": null,
+        "pay_link": null
+      }
+    },
+    {
+      "name": "HIMYM Pub Quiz at Sly Granny",
+      "categories": [
+        "Socializing & Meetups"
+      ],
+      "tags": [
+        "quiz",
+        "pub quiz",
+        "himym",
+        "trivia",
+        "social"
+      ],
+      "summary": "A How I Met Your Mother-themed pub quiz hosted by QM Ananya for fans and quiz enthusiasts.",
+      "notes_to_admin": {
+        "cost": false,
+        "note": "Date inferred as Jan 24, 8:30 PM. No cost mentioned."
+      },
+      "cost": 0,
+      "source_whatsapp_group": "Putting Scene - 15",
+      "area": "Indiranagar",
+      "venue_address": "Sly Granny, Indiranagar",
+      "post_datetime": "2025-01-22T17:09:00+05:30",
+      "event_datetime": "2025-01-24T20:30:00+05:30",
+      "is_update": false,
+      "is_cancelled": false,
+      "links": {
+        "info_link": "https://bit.ly/4h0INlx",
+        "reg_link": null,
+        "pay_link": null
+      }
+    },
+    {
+      "name": "Beginner-Friendly Run by Adidas Runners",
+      "categories": [
+        "Sports & Fitness"
+      ],
+      "tags": [
+        "running",
+        "fitness",
+        "adidas runners",
+        "morning run"
+      ],
+      "summary": "A short beginner-friendly run hosted by the Adidas Runner’s Indiranagar chapter.",
+      "notes_to_admin": {
+        "cost": false,
+        "note": "Date inferred as Jan 24, 6 AM. No cost mentioned."
+      },
+      "cost": 0,
+      "source_whatsapp_group": "Putting Scene - 15",
+      "area": "Indiranagar",
+      "venue_address": "Adidas Store, Indiranagar",
+      "post_datetime": "2025-01-22T17:09:00+05:30",
+      "event_datetime": "2025-01-24T06:00:00+05:30",
+      "is_update": false,
+      "is_cancelled": false,
+      "links": {
+        "info_link": "https://bit.ly/40qCOPR",
+        "reg_link": null,
+        "pay_link": null
+      }
+    },
+    {
+      "name": "Gin Crawl with Brand Ambassador Calum Laird",
+      "categories": [
+        "Food & Beverage",
+        "Socializing & Meetups"
+      ],
+      "tags": [
+        "gin",
+        "crawl",
+        "pub crawl",
+        "spirits",
+        "mixology"
+      ],
+      "summary": "A guided gin crawl through iconic pubs in Bangalore, led by Brand Ambassador Calum Laird.",
+      "notes_to_admin": {
+        "cost": false,
+        "note": "No cost info provided."
+      },
+      "cost": 0,
+      "source_whatsapp_group": "Putting Scene - 15",
+      "area": "Indiranagar",
+      "venue_address": "Jimi's, Indiranagar",
+      "post_datetime": "2025-01-22T17:09:00+05:30",
+      "event_datetime": "2025-01-25T18:30:00+05:30",
+      "is_update": false,
+      "is_cancelled": false,
+      "links": {
+        "info_link": "https://bit.ly/40tP5mi",
+        "reg_link": null,
+        "pay_link": null
+      }
+    },
+    {
+      "name": "Singer-Songwriter Evening at BCC",
+      "categories": [
+        "Music & Concerts"
+      ],
+      "tags": [
+        "singer-songwriter",
+        "live music",
+        "indie",
+        "concert"
+      ],
+      "summary": "An intimate session featuring Michael Dias, Frizzell D'Souza, and Sylvester Pradeep sharing their compositions.",
+      "notes_to_admin": {
+        "cost": false,
+        "note": "Time not explicitly stated; assumed evening around 7 PM."
+      },
+      "cost": 0,
+      "source_whatsapp_group": "BCC Community",
+      "area": "Yeshwanthpur",
+      "venue_address": "Bangalore Creative Circus, Yeshwanthpur",
+      "post_datetime": "2025-01-22T17:16:00+05:30",
+      "event_datetime": "2025-01-25T19:00:00+05:30",
+      "is_update": false,
+      "is_cancelled": false,
+      "links": {
+        "info_link": "https://www.blrcreativecircus.com/events",
+        "reg_link": null,
+        "pay_link": null
+      }
+    },
+    {
+      "name": "Bengaluru Mountain Festival 5K Run",
+      "categories": [
+        "Sports & Fitness"
+      ],
+      "tags": [
+        "running",
+        "marathon",
+        "mountain festival",
+        "5k"
+      ],
+      "summary": "A 5K run at the Bangalore Mountain Festival, offering a challenging course and scenic views.",
+      "notes_to_admin": {
+        "cost": true,
+        "note": "Cost ~1000 as per user selling registration. Exact venue around Nandi Hills not confirmed. Time not specified, assumed early morning."
+      },
+      "cost": 1000,
+      "source_whatsapp_group": "Fit Club Bengaluru",
+      "area": null,
+      "venue_address": null,
+      "post_datetime": "2025-01-14T00:48:00+05:30",
+      "event_datetime": "2025-01-25T06:00:00+05:30",
+      "is_update": false,
+      "is_cancelled": false,
+      "links": {
+        "info_link": "https://mfadventures.in/bmf/",
+        "reg_link": null,
+        "pay_link": null
+      }
+    },
+    {
+      "name": "Spirited Away Screening",
+      "categories": [
+        "Movies & Screenings"
+      ],
+      "tags": [
+        "anime",
+        "studio ghibli",
+        "japanese",
+        "film",
+        "screening"
+      ],
+      "summary": "A community screening of Studio Ghibli’s classic film, 'Spirited Away'.",
+      "notes_to_admin": {
+        "cost": false,
+        "note": "No time or exact venue details in messages. Link for booking provided."
+      },
+      "cost": 0,
+      "source_whatsapp_group": "Sakura Screenings",
+      "area": null,
+      "venue_address": null,
+      "post_datetime": "2025-01-21T20:03:00+05:30",
+      "event_datetime": "2025-01-26T18:00:00+05:30",
+      "is_update": false,
+      "is_cancelled": false,
+      "links": {
+        "info_link": "https://sklbx.com/SkER1vVQ",
+        "reg_link": null,
+        "pay_link": null
+      }
+    },
+    {
+      "name": "Cut Nib Calligraphy Workshop",
+      "categories": [
+        "Art & Craft"
+      ],
+      "tags": [
+        "calligraphy",
+        "art",
+        "writing",
+        "workshop"
+      ],
+      "summary": "A two-day workshop exploring cut nib calligraphy with two scripts covered in six hours of training.",
+      "notes_to_admin": {
+        "cost": true,
+        "note": "Tickets are Rs 1399. Occurs 25–26 Jan."
+      },
+      "cost": 1399,
+      "source_whatsapp_group": "Atta Galatta - Events",
+      "area": "Koramangala",
+      "venue_address": "Atta Galatta, Koramangala",
+      "post_datetime": "2025-01-21T18:44:00+05:30",
+      "event_datetime": "2025-01-25T11:00:00+05:30",
+      "is_update": false,
+      "is_cancelled": false,
+      "links": {
+        "info_link": "https://t.ly/_lRFl",
+        "reg_link": null,
+        "pay_link": null
+      }
+    },
+    {
+      "name": "Windows to a Mountain - Poetry Reading",
+      "categories": [
+        "Reading & Literature"
+      ],
+      "tags": [
+        "poetry",
+        "reading",
+        "book event",
+        "author talk"
+      ],
+      "summary": "Poet Snehal Vadher reads from his first collection, 'Windows to a Mountain'.",
+      "notes_to_admin": {
+        "cost": false,
+        "note": "No cost or direct link provided."
+      },
+      "cost": 0,
+      "source_whatsapp_group": "Atta Galatta - Events",
+      "area": "Koramangala",
+      "venue_address": "Atta Galatta, Koramangala",
+      "post_datetime": "2025-01-21T18:44:00+05:30",
+      "event_datetime": "2025-01-25T11:00:00+05:30",
+      "is_update": false,
+      "is_cancelled": false,
+      "links": {
+        "info_link": null,
+        "reg_link": null,
+        "pay_link": null
+      }
+    },
+    {
+      "name": "Meaning in the Moment: Exploring Logotherapy",
+      "categories": [
+        "Health & Wellness"
+      ],
+      "tags": [
+        "logotherapy",
+        "mental health",
+        "workshop",
+        "viktor frankl"
+      ],
+      "summary": "A session introducing Viktor Frankl’s Logotherapy, focusing on finding purpose and meaning in life.",
+      "notes_to_admin": {
+        "cost": true,
+        "note": "Ticketed at Rs 599. Link provided."
+      },
+      "cost": 599,
+      "source_whatsapp_group": "Atta Galatta - Events",
+      "area": "Koramangala",
+      "venue_address": "Atta Galatta, Koramangala",
+      "post_datetime": "2025-01-21T18:44:00+05:30",
+      "event_datetime": "2025-01-25T12:00:00+05:30",
+      "is_update": false,
+      "is_cancelled": false,
+      "links": {
+        "info_link": "https://t.ly/CgFiE",
+        "reg_link": null,
+        "pay_link": null
+      }
+    },
+    {
+      "name": "1000 Days of Love - Weekly Book Reading Sessions",
+      "categories": [
+        "Reading & Literature"
+      ],
+      "tags": [
+        "book reading",
+        "novel",
+        "discussion",
+        "creative feedback"
+      ],
+      "summary": "Experience a read-along of '1000 Days of Love' with the author, offering real-time feedback and connections.",
+      "notes_to_admin": {
+        "cost": false,
+        "note": "Registration link provided. Occurs 25 and 26 Jan at 3 PM."
+      },
+      "cost": 0,
+      "source_whatsapp_group": "Atta Galatta - Events",
+      "area": "Koramangala",
+      "venue_address": "Atta Galatta, Koramangala",
+      "post_datetime": "2025-01-21T18:44:00+05:30",
+      "event_datetime": "2025-01-25T15:00:00+05:30",
+      "is_update": false,
+      "is_cancelled": false,
+      "links": {
+        "info_link": null,
+        "reg_link": "https://t.ly/Q9xZT",
+        "pay_link": null
+      }
+    },
+    {
+      "name": "Ambedkar Reading Circle: Dalit Representation Talk",
+      "categories": [
+        "Speaking & Discussion"
+      ],
+      "tags": [
+        "ambedkar",
+        "dalit",
+        "cinema",
+        "discussion",
+        "representation"
+      ],
+      "summary": "A talk by Apeksha Singegol on the history, evolution, and impact of Dalit representation in South Indian cinema.",
+      "notes_to_admin": {
+        "cost": false,
+        "note": "No cost or direct link provided."
+      },
+      "cost": 0,
+      "source_whatsapp_group": "Atta Galatta - Events",
+      "area": "Koramangala",
+      "venue_address": "Atta Galatta, Koramangala",
+      "post_datetime": "2025-01-21T18:44:00+05:30",
+      "event_datetime": "2025-01-25T15:00:00+05:30",
+      "is_update": false,
+      "is_cancelled": false,
+      "links": {
+        "info_link": null,
+        "reg_link": null,
+        "pay_link": null
+      }
+    },
+    {
+      "name": "Unscramble JANUARY - Storytelling Meetup",
+      "categories": [
+        "Open Mic & Poetry"
+      ],
+      "tags": [
+        "storytelling",
+        "meetup",
+        "literature",
+        "creative"
+      ],
+      "summary": "Bangalore Storytelling Society’s event where participants form new words from 'JANUARY' and share corresponding tales.",
+      "notes_to_admin": {
+        "cost": false,
+        "note": "No cost indicated. 25 Jan 3:30 PM."
+      },
+      "cost": 0,
+      "source_whatsapp_group": "Atta Galatta - Events",
+      "area": "Koramangala",
+      "venue_address": "Atta Galatta, Koramangala",
+      "post_datetime": "2025-01-21T18:44:00+05:30",
+      "event_datetime": "2025-01-25T15:30:00+05:30",
+      "is_update": false,
+      "is_cancelled": false,
+      "links": {
+        "info_link": null,
+        "reg_link": null,
+        "pay_link": null
+      }
+    },
+    {
+      "name": "Let Poetry Be - Poetry Open Mic",
+      "categories": [
+        "Open Mic & Poetry"
+      ],
+      "tags": [
+        "poetry",
+        "open mic",
+        "literary",
+        "verse"
+      ],
+      "summary": "A monthly gathering celebrating poetry and creative expression, open to listeners and performers.",
+      "notes_to_admin": {
+        "cost": false,
+        "note": "No cost indicated. 25 Jan 4:00 PM."
+      },
+      "cost": 0,
+      "source_whatsapp_group": "Atta Galatta - Events",
+      "area": "Koramangala",
+      "venue_address": "Atta Galatta, Koramangala",
+      "post_datetime": "2025-01-21T18:44:00+05:30",
+      "event_datetime": "2025-01-25T16:00:00+05:30",
+      "is_update": false,
+      "is_cancelled": false,
+      "links": {
+        "info_link": null,
+        "reg_link": null,
+        "pay_link": null
+      }
+    },
+    {
+      "name": "BWW Short Story Community Meetup",
+      "categories": [
+        "Reading & Literature"
+      ],
+      "tags": [
+        "short story",
+        "book club",
+        "literature",
+        "workshop"
+      ],
+      "summary": "A curated deep-dive into short stories by Bangalore Writers Workshop, discussing a chosen piece each month.",
+      "notes_to_admin": {
+        "cost": true,
+        "note": "Cost is Rs 1250. 25 Jan 4 PM."
+      },
+      "cost": 1250,
+      "source_whatsapp_group": "Atta Galatta - Events",
+      "area": "Koramangala",
+      "venue_address": "Atta Galatta, Koramangala",
+      "post_datetime": "2025-01-21T18:44:00+05:30",
+      "event_datetime": "2025-01-25T16:00:00+05:30",
+      "is_update": false,
+      "is_cancelled": false,
+      "links": {
+        "info_link": "https://t.ly/hLnjU",
+        "reg_link": null,
+        "pay_link": null
+      }
+    },
+    {
+      "name": "Woman and the Moon - Book Launch",
+      "categories": [
+        "Reading & Literature"
+      ],
+      "tags": [
+        "book launch",
+        "poetry",
+        "wicca",
+        "lunar",
+        "reading"
+      ],
+      "summary": "Jagari Mukherjee’s book launch, celebrating the poet’s journey influenced by Wicca and moon worship.",
+      "notes_to_admin": {
+        "cost": false,
+        "note": "No cost or link provided. 25 Jan 6 PM."
+      },
+      "cost": 0,
+      "source_whatsapp_group": "Atta Galatta - Events",
+      "area": "Koramangala",
+      "venue_address": "Atta Galatta, Koramangala",
+      "post_datetime": "2025-01-21T18:44:00+05:30",
+      "event_datetime": "2025-01-25T18:00:00+05:30",
+      "is_update": false,
+      "is_cancelled": false,
+      "links": {
+        "info_link": null,
+        "reg_link": null,
+        "pay_link": null
+      }
+    },
+    {
+      "name": "Murder at Midnight - Immersive Crime-Solving",
+      "categories": [
+        "Performing Arts"
+      ],
+      "tags": [
+        "murder mystery",
+        "interactive theatre",
+        "immersive",
+        "Varun Gwalani"
+      ],
+      "summary": "Varun Gwalani presents an immersive crime-solving experience where participants investigate a fictional murder.",
+      "notes_to_admin": {
+        "cost": true,
+        "note": "Tickets at Rs 499. 25 Jan 7:30 PM."
+      },
+      "cost": 499,
+      "source_whatsapp_group": "Atta Galatta - Events",
+      "area": "Koramangala",
+      "venue_address": "Atta Galatta, Koramangala",
+      "post_datetime": "2025-01-21T18:44:00+05:30",
+      "event_datetime": "2025-01-25T19:30:00+05:30",
+      "is_update": false,
+      "is_cancelled": false,
+      "links": {
+        "info_link": "https://t.ly/sMcvy",
+        "reg_link": null,
+        "pay_link": null
+      }
+    },
+    {
+      "name": "Nagrota Under Siege - Book Signing",
+      "categories": [
+        "Reading & Literature"
+      ],
+      "tags": [
+        "book signing",
+        "military",
+        "author event",
+        "Bhaavna Arora"
+      ],
+      "summary": "Bhaavna Arora signs her book 'Nagrota Under Siege,' recounting the 2016 attack on the Nagrota Army Base.",
+      "notes_to_admin": {
+        "cost": false,
+        "note": "Happening 26 Jan, 12 PM. No cost info."
+      },
+      "cost": 0,
+      "source_whatsapp_group": "Atta Galatta - Events",
+      "area": "Koramangala",
+      "venue_address": "Atta Galatta, Koramangala",
+      "post_datetime": "2025-01-21T18:44:00+05:30",
+      "event_datetime": "2025-01-26T12:00:00+05:30",
+      "is_update": false,
+      "is_cancelled": false,
+      "links": {
+        "info_link": null,
+        "reg_link": null,
+        "pay_link": null
+      }
+    },
+    {
+      "name": "Mindful Moves - Movement Workshop",
+      "categories": [
+        "Health & Wellness"
+      ],
+      "tags": [
+        "dance movement therapy",
+        "somatic",
+        "healing",
+        "sound healing"
+      ],
+      "summary": "A session focusing on mind-body connection, trauma healing, and more, led by Sreya Ridhiban.",
+      "notes_to_admin": {
+        "cost": true,
+        "note": "Ticketed at Rs 777. 26 Jan 3 PM."
+      },
+      "cost": 777,
+      "source_whatsapp_group": "Atta Galatta - Events",
+      "area": "Koramangala",
+      "venue_address": "Atta Galatta, Koramangala",
+      "post_datetime": "2025-01-21T18:44:00+05:30",
+      "event_datetime": "2025-01-26T15:00:00+05:30",
+      "is_update": false,
+      "is_cancelled": false,
+      "links": {
+        "info_link": "https://t.ly/bTO58",
+        "reg_link": null,
+        "pay_link": null
+      }
+    },
+    {
+      "name": "Wandering Thoughts - Women’s Reflection Circle",
+      "categories": [
+        "Health & Wellness"
+      ],
+      "tags": [
+        "women",
+        "support group",
+        "reflection",
+        "mental health"
+      ],
+      "summary": "A gathering dedicated to emotional support and shared experiences, creating a safe space for women.",
+      "notes_to_admin": {
+        "cost": false,
+        "note": "No cost stated. 26 Jan 5 PM. Registration link provided."
+      },
+      "cost": 0,
+      "source_whatsapp_group": "Atta Galatta - Events",
+      "area": "Koramangala",
+      "venue_address": "Atta Galatta, Koramangala",
+      "post_datetime": "2025-01-21T18:44:00+05:30",
+      "event_datetime": "2025-01-26T17:00:00+05:30",
+      "is_update": false,
+      "is_cancelled": false,
+      "links": {
+        "info_link": "https://t.ly/kLVVd",
+        "reg_link": null,
+        "pay_link": null
+      }
+    },
+    {
+      "name": "Talk: The Art of Discernment & Decision Making",
+      "categories": [
+        "Speaking & Discussion"
+      ],
+      "tags": [
+        "philosophy",
+        "discernment",
+        "decision making",
+        "ancient wisdom"
+      ],
+      "summary": "A talk and guided exercises on building clarity in choices, drawing from ancient Tibetan, Indian, and Greek thought.",
+      "notes_to_admin": {
+        "cost": false,
+        "note": "Jan 25, 6:30 PM at New Acropolis Indiranagar. Free talk."
+      },
+      "cost": 0,
+      "source_whatsapp_group": "New Acropolis Community",
+      "area": "Indiranagar",
+      "venue_address": "New Acropolis, Indiranagar",
+      "post_datetime": "2025-01-21T13:39:00+05:30",
+      "event_datetime": "2025-01-25T18:30:00+05:30",
+      "is_update": false,
+      "is_cancelled": false,
+      "links": {
+        "info_link": "https://forms.gle/QPWPZQ8PST4h63z47",
+        "reg_link": null,
+        "pay_link": null
+      }
+    },
+    {
+      "name": "PowerPoint Roulette by Improv Lore",
+      "categories": [
+        "Performing Arts"
+      ],
+      "tags": [
+        "improv",
+        "comedy",
+        "theatre",
+        "ppt roulette"
+      ],
+      "summary": "Improvisers present slides they've never seen before, creating a fast-paced, comedic show.",
+      "notes_to_admin": {
+        "cost": false,
+        "note": "No cost specified. 25 Jan 7 PM at Underline Center."
+      },
+      "cost": 0,
+      "source_whatsapp_group": "Improv Lore Community",
+      "area": "Indiranagar",
+      "venue_address": "Underline Center, Indiranagar",
+      "post_datetime": "2025-01-20T18:13:00+05:30",
+      "event_datetime": "2025-01-25T19:00:00+05:30",
+      "is_update": false,
+      "is_cancelled": false,
+      "links": {
+        "info_link": "https://at.underline.center/powerpoint-roulette-il",
+        "reg_link": null,
+        "pay_link": null
+      }
+    },
+    {
+      "name": "Content Creation Workshop with Vishakha George",
+      "categories": [
+        "Learning & Education"
+      ],
+      "tags": [
+        "content creation",
+        "digital marketing",
+        "workshop",
+        "skills"
+      ],
+      "summary": "A session with Vishakha George sharing practical tips and strategies on improving content creation.",
+      "notes_to_admin": {
+        "cost": false,
+        "note": "Exact cost unlisted. Estimated time 25 Jan afternoon."
+      },
+      "cost": 0,
+      "source_whatsapp_group": "Underline Center",
+      "area": "Indiranagar",
+      "venue_address": "Underline Center, Indiranagar",
+      "post_datetime": "2025-01-20T23:05:00+05:30",
+      "event_datetime": "2025-01-25T14:00:00+05:30",
+      "is_update": false,
+      "is_cancelled": false,
+      "links": {
+        "info_link": "https://underline.center/calendar",
+        "reg_link": null,
+        "pay_link": null
+      }
+    },
+    {
+      "name": "River Landscapes Workshop at SGB",
+      "categories": [
+        "Learning & Education"
+      ],
+      "tags": [
+        "river",
+        "ecology",
+        "kaveri",
+        "art-science",
+        "workshop"
+      ],
+      "summary": "A transdisciplinary workshop exploring the story of the Kaveri River and its cultural, ecological impacts.",
+      "notes_to_admin": {
+        "cost": false,
+        "note": "Occurs Feb 10–14. Free open call. Start date/time set to Feb 10, 10 AM."
+      },
+      "cost": 0,
+      "source_whatsapp_group": "Science Gallery Bengaluru",
+      "area": null,
+      "venue_address": "Science Gallery Bengaluru, Bangalore",
+      "post_datetime": "2025-01-18T17:43:00+05:30",
+      "event_datetime": "2025-02-10T10:00:00+05:30",
+      "is_update": false,
+      "is_cancelled": false,
+      "links": {
+        "info_link": "https://bengaluru.sciencegallery.com/work-with-us-open-calls/call-for-applications-river-landscapes-workshop",
+        "reg_link": null,
+        "pay_link": null
+      }
+    },
+    {
+      "name": "Movie Under the Stars: High Fidelity",
+      "categories": [
+        "Movies & Screenings"
+      ],
+      "tags": [
+        "movie screening",
+        "rom-com",
+        "music",
+        "open air"
+      ],
+      "summary": "An open-air screening of the cult classic 'High Fidelity,' paired with a candlelit three-course dinner.",
+      "notes_to_admin": {
+        "cost": false,
+        "note": "No cost stated. Possibly at The Courtyard. 25 Jan 7:30 PM."
+      },
+      "cost": 0,
+      "source_whatsapp_group": "Courtyard Community",
+      "area": "Shanti Nagar",
+      "venue_address": "The Yard (The Courtyard), Shanti Nagar",
+      "post_datetime": "2025-01-15T15:02:00+05:30",
+      "event_datetime": "2025-01-25T19:30:00+05:30",
+      "is_update": false,
+      "is_cancelled": false,
+      "links": {
+        "info_link": "https://urbanaut.app/spot/movie-under-the-stars-h",
+        "reg_link": null,
+        "pay_link": null
+      }
+    },
+    {
+      "name": "Ground Up 5-Course Tasting Menu",
+      "categories": [
+        "Food & Beverage"
+      ],
+      "tags": [
+        "culinary",
+        "tasting menu",
+        "chef pop-up",
+        "fermentation"
+      ],
+      "summary": "Chef Gayatri Desai’s innovative 5-course menu featuring handcrafted miso, vinegars, and local produce.",
+      "notes_to_admin": {
+        "cost": false,
+        "note": "No cost stated. Happening 31 Jan–1 Feb at The Conservatory."
+      },
+      "cost": 0,
+      "source_whatsapp_group": "Courtyard Community",
+      "area": "Shanti Nagar",
+      "venue_address": "The Conservatory, Shanti Nagar",
+      "post_datetime": "2025-01-18T19:20:00+05:30",
+      "event_datetime": "2025-01-31T19:00:00+05:30",
+      "is_update": false,
+      "is_cancelled": false,
+      "links": {
+        "info_link": "https://zomato.onelink.me/xqzv/x6dmy1pv",
+        "reg_link": null,
+        "pay_link": null
+      }
+    },
+    {
+      "name": "Queso & Miso: Ferment Pairing Session",
+      "categories": [
+        "Food & Beverage"
+      ],
+      "tags": [
+        "fermentation",
+        "miso",
+        "cheese",
+        "food pairing"
+      ],
+      "summary": "Chef Gayatri Desai teams up with Cheesemonger Mansi Jasani for a unique cheese-and-miso pairing experience.",
+      "notes_to_admin": {
+        "cost": false,
+        "note": "No cost stated. Takes place on Feb 2 at The Conservatory. Time assumed 2 PM."
+      },
+      "cost": 0,
+      "source_whatsapp_group": "Courtyard Community",
+      "area": "Shanti Nagar",
+      "venue_address": "The Conservatory, Shanti Nagar",
+      "post_datetime": "2025-01-18T19:20:00+05:30",
+      "event_datetime": "2025-02-02T14:00:00+05:30",
+      "is_update": false,
+      "is_cancelled": false,
+      "links": {
+        "info_link": "https://zomato.onelink.me/xqzv/4hq55tfv",
+        "reg_link": null,
+        "pay_link": null
+      }
+    },
+    {
+      "name": "Bizluru Sunday Market at Maiz & Malt",
+      "categories": [
+        "Socializing & Meetups"
+      ],
+      "tags": [
+        "sunday market",
+        "popup",
+        "vendors",
+        "whitefield",
+        "food",
+        "flea"
+      ],
+      "summary": "A recurring Sunday pop-up market featuring various stalls, creative vendors, and lively vibes in Whitefield.",
+      "notes_to_admin": {
+        "cost": false,
+        "note": "Free entry for visitors; Rs3000 for stall. Next date: Jan 26. Occurs weekly."
+      },
+      "cost": 0,
+      "source_whatsapp_group": "The Mango Tree",
+      "area": "Whitefield",
+      "venue_address": "Maiz and Malt, Whitefield",
+      "post_datetime": "2025-01-17T15:16:00+05:30",
+      "event_datetime": "2025-01-26T12:00:00+05:30",
+      "is_update": false,
+      "is_cancelled": false,
+      "links": {
+        "info_link": null,
+        "reg_link": null,
+        "pay_link": null
+      }
+    }
+  ],
+  "category_updates": {
+    "new_categories": []
+  }
+}
