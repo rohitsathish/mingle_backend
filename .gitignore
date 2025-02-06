@@ -1,6 +1,3 @@
-# WhatsApp session data
-whatsapp_state.json
-
 # Python
 **/__pycache__/
 *.py[cod]
@@ -33,6 +30,8 @@ var/
 llm_system_prompts/
 temp/
 chrome_profile/
+messages/
+parsed_events/
 
 # Environment
 .env
