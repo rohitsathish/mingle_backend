@@ -1,3 +1,6 @@
+# WhatsApp session data
+whatsapp_state.json
+
 # Python
 **/__pycache__/
 *.py[cod]

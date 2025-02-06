@@ -6,7 +6,7 @@ from config import GROUPS
 def main():
     """Main entry point for the WhatsApp scraper."""
     keep_open = True
-    test_run = False
+    test_run = True
     days_back = 10
 
     print("Starting Mingle Scraper...")

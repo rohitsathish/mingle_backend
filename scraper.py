@@ -98,12 +98,16 @@ class WhatsAppScraper:
                 self.browser = self.playwright.chromium.launch_persistent_context(
                     profile_dir,
                     headless=False,
+                    viewport=None,
                     args=[
                         f"--remote-debugging-port={self.debugging_port}",
                         "--disk-cache-size=0",  # Disable disk caching
                         "--disable-application-cache",  # Disable the application cache
                         "--disable-sync",  # Turn off profile syncing
                         "--disable-extensions",  # Prevent extensions from being loaded
+                        "--no-sandbox",
+                        "--start-maximized",  # Start maximized
+                        "--disable-gpu",  # Disable GPU hardware acceleration
                     ],
                 )
 
@@ -112,6 +116,16 @@ class WhatsAppScraper:
                     self.page = self.browser.pages[0]
                 else:
                     self.page = self.browser.new_page()
+
+                try:
+                    cdp = self.page.context.new_cdp_session(self.page)
+                    window_info = cdp.send("Browser.getWindowForTarget")
+                    cdp.send("Browser.setWindowBounds", {
+                        "windowId": window_info["windowId"],
+                        "bounds": {"windowState": "maximized"}
+                    })
+                except Exception as e:
+                    print(f"Failed to maximize window using CDP: {e}")
 
                 # Navigate to WhatsApp Web if not already there
                 if not self.page.url or "web.whatsapp.com" not in self.page.url:
@@ -283,7 +297,40 @@ class WhatsAppScraper:
         print("Successfully navigated to archived chats")
         return True
 
-    def parse_messages(self, html: str, start_datetime: datetime, group_name: str) -> Dict[str, str]:
+    def get_image_base64(self, page, blob_url: str) -> str:
+        """Get base64 string of image from blob URL synchronously using fetch and ArrayBuffer conversion."""
+        try:
+            js_code = """
+            async (url) => {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                // Read raw bytes from the response
+                const buffer = await response.arrayBuffer();
+                // Convert the array buffer to a binary string
+                let binary = '';
+                const bytes = new Uint8Array(buffer);
+                for (let i = 0; i < bytes.byteLength; i++) {
+                    binary += String.fromCharCode(bytes[i]);
+                }
+                // Convert binary string to Base64
+                const base64String = btoa(binary);
+                const contentType = response.headers.get('content-type') || 'image/jpeg';
+                const dataUrl = `data:${contentType};base64,` + base64String;
+                return dataUrl;
+            }
+            """
+            result = page.evaluate(js_code, blob_url)
+            # Check for known placeholder signature (1x1 transparent GIF)
+            if result.startswith("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP"):
+                raise Exception("Returned image appears to be a placeholder")
+            return result
+        except Exception as e:
+            print(f"Failed to get image base64: {e}")
+            return None
+
+    def parse_messages(self, html: str, start_datetime: datetime, group_name: str) -> Dict[str, Dict]:
         """Parse messages from HTML content after start_datetime."""
         soup = BeautifulSoup(html, "html.parser")
         messages = {}
@@ -302,51 +349,92 @@ class WhatsAppScraper:
                     current_date = convert_whatsapp_date(date_span.text.strip())
                     continue
 
-            # Handle message rows
             if div.get("role") == "row" and current_date and current_date >= start_datetime.date():
                 try:
-                    # Find copyable text div that contains timestamp and message
+                    # Try to get the copyable text block
                     copyable_text = div.find("div", class_="copyable-text")
-                    if not copyable_text:
-                        continue
-
-                    # Extract timestamp from data-pre-plain-text
-                    pre_text = copyable_text.get("data-pre-plain-text", "")
-                    time_match = re.search(r"\[(.*?),.*?\]", pre_text)
-                    if not time_match:
-                        continue
-
-                    # Get message text from copyable-text content
-                    message_content = copyable_text.find("span", class_="selectable-text")
-                    if not message_content:
-                        continue
-
                     message_text = ""
-                    for elem in message_content.contents:
-                        if isinstance(elem, str):
-                            message_text += elem
-                        elif elem.name == "br":
-                            message_text += "\n"
-                        else:
-                            message_text += elem.get_text()
+                    time_str = None
 
-                    message_text = message_text.strip()
-                    if not message_text:
+                    if copyable_text:
+                        # Extract timestamp from data-pre-plain-text attribute
+                        pre_text = copyable_text.get("data-pre-plain-text", "")
+                        time_match = re.search(r"\[(.*?),.*?\]", pre_text)
+                        if time_match:
+                            time_str = time_match.group(1).strip()
+
+                        # Extract text content if available
+                        message_content = copyable_text.find("span", class_="selectable-text")
+                        if message_content:
+                            for elem in message_content.contents:
+                                if isinstance(elem, str):
+                                    message_text += elem
+                                elif elem.name == "br":
+                                    message_text += "\n"
+                                else:
+                                    message_text += elem.get_text()
+                            message_text = message_text.strip()
+                    else:
+                        # For image-only messages, try to extract timestamp from a span matching a time pattern.
+                        timestamp_span = div.find("span", text=re.compile(r"\d{1,2}:\d{2}\s*(?:am|pm)", re.IGNORECASE))
+                        if timestamp_span:
+                            time_str = timestamp_span.get_text(strip=True)
+
+                    # If no timestamp is found, skip this message.
+                    if not time_str:
                         continue
 
-                    # Parse time and create datetime
-                    time_str = time_match.group(1).strip()
-                    time_parts = time_str.replace("am", " AM").replace("pm", " PM")
-                    message_time = datetime.strptime(time_parts, "%I:%M %p").time()
+                    # Parse the time string (assumes format like "7:20 am")
+                    try:
+                        message_time = datetime.strptime(time_str, "%I:%M %p").time()
+                    except Exception:
+                        continue
+
                     message_datetime = datetime.combine(current_date, message_time)
                     message_datetime = message_datetime.replace(tzinfo=ZoneInfo("Asia/Kolkata"))
 
-                    if message_datetime > start_datetime:
-                        is_chatty_group = GROUPS.get(group_name, {}).get("chatter", False)
-                        if not is_chatty_group or (is_chatty_group and re.search(event_pattern, message_text.lower())):
-                            messages[message_datetime.strftime("%Y-%m-%dT%H:%M%z")] = message_text
+                    # Extract images from the row
+                    images = []
+                    img_tags = div.find_all("img", attrs={"draggable": True, "style": True, "src": True, "tabindex": False})
+                    for img in img_tags:
+                        blob_url = img.get("src")
+                        if not blob_url:
+                            continue
 
-                except (ValueError, AttributeError) as e:
+                        # Screening: skip known placeholder blobs (e.g., 1x1 transparent GIF)
+                        if "R0lGODlhAQABAIAAAAAAAP" in blob_url:
+                            continue
+
+                        # Screening: check inline style for extremely small dimensions
+                        style = img.get("style", "").lower()
+                        if "width:1px" in style or "height:1px" in style:
+                            continue
+
+                        try:
+                            base64_data = self.get_image_base64(self.page, blob_url)
+                            if base64_data and "R0lGODlhAQABAIAAAAAAAP" not in base64_data:
+                                images.append(base64_data)
+                        except Exception as e:
+                            print(f"Failed to get image data: {e}")
+
+                    # Only skip the message if both text and images are empty.
+                    if not message_text and not images:
+                        continue
+
+                    is_chatty_group = GROUPS.get(group_name, {}).get("chatter", False)
+                    if not is_chatty_group or (is_chatty_group and re.search(event_pattern, message_text.lower())):
+                        key = message_datetime.strftime("%Y-%m-%dT%H:%M%z")
+                        if key in messages:
+                            messages[key].append({
+                                "text": message_text,
+                                "imgs": images,
+                            })
+                        else:
+                            messages[key] = [{
+                                "text": message_text,
+                                "imgs": images,
+                            }]
+                except Exception as e:
                     print(f"Error parsing message: {e}")
                     continue
 
@@ -527,8 +615,7 @@ class WhatsAppScraper:
         """
         # If test_run is True, randomly select 3 groups
         if self.test_run:
-            groups_list = random.sample(groups_list, min(2, len(groups_list)))
-            print(f"Test run: Selected groups {groups_list}")
+            groups_list = ["Bangalore IRLs"]
 
         if not self.navigate_to_archived():
             print("Could not access archived chats")

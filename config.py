@@ -141,7 +141,7 @@ SELECTORS = {
     "READ_MORE_BUTTON": 'div[role="button"]:text-is("Read more")',
     "MESSAGE_DATE_DIVS": 'div[role="application"] > div[tabindex="-1"] > div > span[dir="auto"]',
     "OLDER_MESSAGES_BUTTON": ':text-matches("click here to get older messages|Use WhatsApp on your phone to see older")',
-    "CHAT_SCROLL_CONTAINER": 'div[id="main"] > div > div[class*="copyable-area"] > div:nth-child(2)',
+    "CHAT_SCROLL_CONTAINER": 'div[id="main"] > div > div[class*="copyable-area"] > div[tabindex="0"]',
     "MESSAGE_CONTAINER": 'div[role="application"] > div',
     "MESSAGE_TEXT": 'span[dir="ltr"]',
     "MESSAGE_EVENT": 'div[aria-label*="Event"]',
