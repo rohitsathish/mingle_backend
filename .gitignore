@@ -170,9 +170,6 @@ Path
 .cursor/
 .github/
 
-# GitHub workflows (should be committed, but you mentioned it's untracked)
-# .github/
-
 # API keys and sensitive data
 *.key
 *.pem
