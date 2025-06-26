@@ -1,7 +1,7 @@
 # %%
-from playwright.sync_api import sync_playwright, Page, Browser
+from playwright.sync_api import sync_playwright, Page, Browser, TimeoutError
 from bs4 import BeautifulSoup
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Tuple
 from messages_handler import MessagesHandler
 import json
 from datetime import datetime, timedelta, timezone
@@ -36,13 +36,20 @@ class WhatsAppScraper:
 
         try:
             # Look for any header that has a descendant span with title="Announcements"
-            announcement_span = self.page.locator('header span[title="Announcements"]').first
+            announcement_span = self.page.locator(
+                'header span[title="Announcements"]'
+            ).first
             return announcement_span.is_visible()
         except Exception as e:
             print(f"Error verifying announcement group: {e}")
             return False
 
-    def __init__(self, debugging_port: int = 9222, keep_open: bool = False, test_run: bool = False):
+    def __init__(
+        self,
+        debugging_port: int = 9222,
+        keep_open: bool = False,
+        test_run: bool = False,
+    ):
         """Initialize the WhatsApp scraper."""
         self.playwright = None
         self.browser = None
@@ -85,13 +92,19 @@ class WhatsAppScraper:
         """
         try:
             if self.is_port_in_use():
-                print(f"Connecting to existing Chrome session on port {self.debugging_port}")
-                self.browser = self.playwright.chromium.connect_over_cdp(f"http://localhost:{self.debugging_port}")
+                print(
+                    f"Connecting to existing Chrome session on port {self.debugging_port}"
+                )
+                self.browser = self.playwright.chromium.connect_over_cdp(
+                    f"http://localhost:{self.debugging_port}"
+                )
                 self.context = self.browser.contexts[0]
                 self.page = self.context.pages[0]
             else:
                 # Define a persistent profile folder to store all browser data
-                profile_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "chrome_profile")
+                profile_dir = os.path.join(
+                    os.path.dirname(os.path.abspath(__file__)), "chrome_profile"
+                )
                 print("Starting persistent Chrome session using profile:", profile_dir)
 
                 # Launch a persistent context with flags to reduce stored data
@@ -120,16 +133,21 @@ class WhatsAppScraper:
                 try:
                     cdp = self.page.context.new_cdp_session(self.page)
                     window_info = cdp.send("Browser.getWindowForTarget")
-                    cdp.send("Browser.setWindowBounds", {
-                        "windowId": window_info["windowId"],
-                        "bounds": {"windowState": "maximized"}
-                    })
+                    cdp.send(
+                        "Browser.setWindowBounds",
+                        {
+                            "windowId": window_info["windowId"],
+                            "bounds": {"windowState": "maximized"},
+                        },
+                    )
                 except Exception as e:
                     print(f"Failed to maximize window using CDP: {e}")
 
                 # Navigate to WhatsApp Web if not already there
                 if not self.page.url or "web.whatsapp.com" not in self.page.url:
-                    self.page.goto("https://web.whatsapp.com", wait_until="domcontentloaded")
+                    self.page.goto(
+                        "https://web.whatsapp.com", wait_until="domcontentloaded"
+                    )
             return True
         except Exception as e:
             print(f"Failed to initialize browser: {e}")
@@ -140,7 +158,9 @@ class WhatsAppScraper:
         try:
 
             has_scan_text = self.page.locator("text=scan the QR code").is_visible()
-            has_login_text = self.page.locator("text='Log into WhatsApp Web'").is_visible()
+            has_login_text = self.page.locator(
+                "text='Log into WhatsApp Web'"
+            ).is_visible()
             return has_scan_text and has_login_text
         except:
             return False
@@ -151,7 +171,9 @@ class WhatsAppScraper:
         Returns: Percentage loaded if on loading page, None otherwise.
         """
         try:
-            loading_text = self.page.locator("text=Loading your chats").first.text_content()
+            loading_text = self.page.locator(
+                "text=Loading your chats"
+            ).first.text_content()
             if "Don't close this window" in self.page.content():
                 # Extract percentage from "Loading your chats [xx%]"
                 if match := re.search(r"\[(\d+)%\]", loading_text):
@@ -160,7 +182,9 @@ class WhatsAppScraper:
             pass
         return None
 
-    def _calculate_wait_time(self, current_percentage: int, last_percentage: int, last_wait_time: float) -> float:
+    def _calculate_wait_time(
+        self, current_percentage: int, last_percentage: int, last_wait_time: float
+    ) -> float:
         """Calculate wait time based on loading progress."""
         if current_percentage <= last_percentage:
             # If progress is stuck, increase wait time
@@ -198,7 +222,9 @@ class WhatsAppScraper:
 
             # Verify essential WhatsApp cookies
             wa_cookies = {
-                cookie["name"]: cookie for cookie in cookies if cookie.get("domain", "").endswith("web.whatsapp.com")
+                cookie["name"]: cookie
+                for cookie in cookies
+                if cookie.get("domain", "").endswith("web.whatsapp.com")
             }
             if "wa_ul" not in wa_cookies:
                 print("Missing essential WhatsApp cookie: wa_ul")
@@ -221,6 +247,42 @@ class WhatsAppScraper:
             print(f"Storage state validation failed: {e}")
             return False
 
+    def _wait_for_sync_completion(
+        self, max_wait: int = 120, timeout: int = 900
+    ) -> bool:
+        """Wait for sync message to disappear with exponential backoff.
+
+        Args:
+            max_wait: Maximum wait time between checks in seconds (default 120)
+            timeout: Total timeout in seconds (default 600)
+        Returns:
+            bool: True if sync completed, False if timed out
+        """
+        base_wait = 1
+        current_wait = base_wait
+        start_time = time.time()
+
+        while time.time() - start_time < timeout:
+            try:
+                sync_message = self.page.locator(
+                    SELECTORS["SYNC_PROGRESS_MESSAGE"]
+                ).first
+                if not sync_message.is_visible():
+                    return True
+
+                print(f"Waiting for message sync... (next check in {current_wait}s)")
+                time.sleep(current_wait)
+
+                # Exponential backoff with max cap
+                current_wait = min(current_wait * 2, max_wait)
+
+            except Exception as e:
+                print(f"Error checking sync status: {e}")
+                return True  # Assume sync completed if we can't find the message
+
+        print(f"Sync wait timed out after {timeout} seconds")
+        return False
+
     def wait_for_login(self, timeout: int = 15 * 60) -> bool:
         """Wait for WhatsApp Web login to complete."""
         try:
@@ -231,11 +293,13 @@ class WhatsAppScraper:
 
             while time.time() - start_time < timeout:
                 # Check if already on chat list
-                if self.page.locator('h1:has-text("Chats")').is_visible(timeout=1 * 60 * 1000):
+                if self.page.locator(SELECTORS["MAIN_PAGE_HEADER"]).is_visible(
+                    timeout=100
+                ):
                     print("Chat list is visible!")
 
                     # Wait for service worker and IndexedDB to be ready
-                    time.sleep(3)  # Give time for IndexedDB to initialize
+                    time.sleep(3)
 
                     if self.keep_open:
                         print("Browser will remain open")
@@ -250,7 +314,9 @@ class WhatsAppScraper:
                 # Check for loading page
                 if current_percentage := self._is_loading_messages():
                     print(f"Loading messages: {current_percentage}%")
-                    wait_time = self._calculate_wait_time(current_percentage, last_percentage, wait_time)
+                    wait_time = self._calculate_wait_time(
+                        current_percentage, last_percentage, wait_time
+                    )
                     last_percentage = current_percentage
                     time.sleep(wait_time)
                     continue
@@ -283,7 +349,7 @@ class WhatsAppScraper:
             return True
 
         # Wait for the chat list and click the Archived link
-        self.page.wait_for_selector('h1:has-text("Chats")', timeout=10000)
+        self.page.wait_for_selector(SELECTORS["MAIN_PAGE_HEADER"], timeout=10000)
         archived_link = self.page.locator(SELECTORS["ARCHIVED_TEXT"]).first
 
         if not archived_link.is_visible():
@@ -297,59 +363,156 @@ class WhatsAppScraper:
         print("Successfully navigated to archived chats")
         return True
 
-    def get_image_base64(self, page, blob_url: str) -> str:
-        """Get base64 string of image from blob URL synchronously using fetch and ArrayBuffer conversion."""
-        try:
-            js_code = """
-            async (url) => {
-                const response = await fetch(url);
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                // Read raw bytes from the response
-                const buffer = await response.arrayBuffer();
-                // Convert the array buffer to a binary string
-                let binary = '';
-                const bytes = new Uint8Array(buffer);
-                for (let i = 0; i < bytes.byteLength; i++) {
-                    binary += String.fromCharCode(bytes[i]);
-                }
-                // Convert binary string to Base64
-                const base64String = btoa(binary);
-                const contentType = response.headers.get('content-type') || 'image/jpeg';
-                const dataUrl = `data:${contentType};base64,` + base64String;
-                return dataUrl;
-            }
-            """
-            result = page.evaluate(js_code, blob_url)
-            # Check for known placeholder signature (1x1 transparent GIF)
-            if result.startswith("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP"):
-                raise Exception("Returned image appears to be a placeholder")
-            return result
-        except Exception as e:
-            print(f"Failed to get image base64: {e}")
-            return None
+    # def get_image_base64(self, page, blob_url: str) -> str:
+    #     """Get base64 string of image from blob URL with multiple fallback methods."""
 
-    def parse_messages(self, html: str, start_datetime: datetime, group_name: str) -> Dict[str, Dict]:
-        """Parse messages from HTML content after start_datetime."""
+    #     js_code = """
+    #     async (url) => {
+    #         // Primary method: fetch blob and convert via FileReader
+    #         try {
+    #             const response = await fetch(url);
+    #             if (!response.ok) throw new Error('Network response was not ok');
+    #             const blob = await response.blob();
+    #             const reader = new FileReader();
+    #             const dataUrl = await new Promise((resolve, reject) => {
+    #                 reader.onloadend = () => resolve(reader.result);
+    #                 reader.onerror = reject;
+    #                 reader.readAsDataURL(blob);
+    #             });
+    #             return dataUrl;
+    #         } catch (primaryError) {
+    #             // Fallback 1: draw image on canvas and export
+    #             try {
+    #                 const img = new Image();
+    #                 img.src = url;
+    #                 await new Promise((res, rej) => {
+    #                     img.onload = res;
+    #                     img.onerror = rej;
+    #                 });
+    #                 const canvas = document.createElement('canvas');
+    #                 canvas.width = img.naturalWidth;
+    #                 canvas.height = img.naturalHeight;
+    #                 const ctx = canvas.getContext('2d');
+    #                 ctx.drawImage(img, 0, 0);
+    #                 return canvas.toDataURL();
+    #             } catch (canvasError) {
+    #                 // Fallback 2: XHR method
+    #                 return new Promise((resolve, reject) => {
+    #                     const xhr = new XMLHttpRequest();
+    #                     xhr.open('GET', url);
+    #                     xhr.responseType = 'blob';
+    #                     xhr.onload = () => {
+    #                         const reader = new FileReader();
+    #                         reader.onloadend = () => resolve(reader.result);
+    #                         reader.onerror = reject;
+    #                         reader.readAsDataURL(xhr.response);
+    #                     };
+    #                     xhr.onerror = () => reject(new Error('XHR failed'));
+    #                     xhr.send();
+    #                 });
+    #             }
+    #         }
+    #     }
+    #     """
+
+    #     # Implement retry logic
+    #     max_retries = 3
+    #     retry_count = 0
+    #     last_error = None
+
+    #     while retry_count < max_retries:
+    #         try:
+    #             result = page.evaluate(js_code, blob_url)
+    #             break  # Success, exit the retry loop
+    #         except Exception as e:
+    #             retry_count += 1
+    #             last_error = e
+    #             print(f"Image fetch attempt {retry_count} failed: {e}")
+    #             if retry_count < max_retries:
+    #                 # Add exponential backoff with jitter
+    #                 wait_time = min(2 ** retry_count * 0.5, 2) + random.random()
+    #                 print(f"Retrying in {wait_time:.2f} seconds...")
+    #                 time.sleep(wait_time)
+
+    #     # If we've exhausted all retries, raise the last error
+    #     if retry_count == max_retries:
+    #         raise Exception(f"Failed to fetch image after {max_retries} attempts: {last_error}")
+
+    #     # Check for known placeholder signature (1x1 transparent GIF)
+    #     if result.startswith("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP"):
+    #         raise Exception("Returned image appears to be a placeholder")
+    #     return result
+
+    def get_image_base64(self, page, img_handle) -> str:
+        """
+        Given a Playwright element handle for an <img> with a blob URL src,
+        fetch the image as base64 while the blob is still alive.
+
+        This avoids issues with revoked blob URLs by working directly with the DOM element.
+        """
+
+        js_code = """
+        async (img) => {
+            // Use the image element's src attribute (blob URL)
+            const url = img.src;
+
+            try {
+                // Fetch blob from blob URL inside the same context owning the blob
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Failed to fetch blob URL');
+
+                const blob = await response.blob();
+
+                // Convert blob to base64 via FileReader
+                const dataUrl = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+                return dataUrl;
+
+            } catch (err) {
+                // If fetch failed, fallback to canvas draw method
+                const canvas = document.createElement('canvas');
+                canvas.width = img.naturalWidth;
+                canvas.height = img.naturalHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                return canvas.toDataURL();
+            }
+        }
+        """
+        # Evaluate the JS code with the element handle (img_handle)
+        return page.evaluate(js_code, img_handle)
+
+    def parse_messages(
+        self, html: str, start_datetime: datetime, group_name: str
+    ) -> Dict[str, List[Dict]]:
+        """Parse messages from HTML content after start_datetime.
+
+        Returns:
+            Dict where key is "message_num|datetime_str" and value is a list of message parts (text, imgs).
+        """
         soup = BeautifulSoup(html, "html.parser")
         messages = {}
+        message_num = 0  # Initialize message counter
         current_date = None
         event_pattern = "|".join(EVENT_PATTERNS)
 
-        chat_container = soup.find("div", {"role": "application"})
+        chat_container = soup.find("div", {"role": "application", "data-tab": True})
         if not chat_container:
-            return messages
+            raise ValueError("Chat container not found in HTML")
 
         for div in chat_container.find_all("div", recursive=False):
             # Handle date headers
-            if "focusable-list-item" in div.get("class", []):
+            if div.has_attr("tabindex"):
                 date_span = div.find("span", dir="auto")
                 if date_span and date_span.text:
                     current_date = convert_whatsapp_date(date_span.text.strip())
                     continue
 
-            if div.get("role") == "row" and current_date and current_date >= start_datetime.date():
+            if current_date and current_date >= start_datetime.date():
                 try:
                     # Try to get the copyable text block
                     copyable_text = div.find("div", class_="copyable-text")
@@ -364,7 +527,9 @@ class WhatsAppScraper:
                             time_str = time_match.group(1).strip()
 
                         # Extract text content if available
-                        message_content = copyable_text.find("span", class_="selectable-text")
+                        message_content = copyable_text.find(
+                            "span", class_="selectable-text"
+                        )
                         if message_content:
                             for elem in message_content.contents:
                                 if isinstance(elem, str):
@@ -376,7 +541,12 @@ class WhatsAppScraper:
                             message_text = message_text.strip()
                     else:
                         # For image-only messages, try to extract timestamp from a span matching a time pattern.
-                        timestamp_span = div.find("span", text=re.compile(r"\d{1,2}:\d{2}\s*(?:am|pm)", re.IGNORECASE))
+                        timestamp_span = div.find(
+                            "span",
+                            text=re.compile(
+                                r"\d{1,2}:\d{2}\s*(?:am|pm)", re.IGNORECASE
+                            ),
+                        )
                         if timestamp_span:
                             time_str = timestamp_span.get_text(strip=True)
 
@@ -391,29 +561,78 @@ class WhatsAppScraper:
                         continue
 
                     message_datetime = datetime.combine(current_date, message_time)
-                    message_datetime = message_datetime.replace(tzinfo=ZoneInfo("Asia/Kolkata"))
+                    message_datetime = message_datetime.replace(
+                        tzinfo=ZoneInfo("Asia/Kolkata")
+                    )
 
-                    # Extract images from the row
-                    images = []
-                    img_tags = div.find_all("img", attrs={"draggable": True, "style": True, "src": True, "tabindex": False})
+                    # Extract images from the row into a dictionary
+                    images = {}
+                    img_num = 0  # Counter for images within this message block
+                    img_tags = div.find_all(
+                        "img",
+                        attrs={
+                            "draggable": True,
+                            "style": True,
+                            "src": True,
+                            "tabindex": False,
+                        },
+                    )
+                    # for img in img_tags:
+                    #     blob_url = img.get("src")
+                    #     if not blob_url:
+                    #         continue
+
+                    #     # Screening: skip known placeholder blobs (e.g., 1x1 transparent GIF)
+                    #     if "R0lGODlhAQABAIAAAAAAAP" in blob_url:
+                    #         continue
+
+                    #     # Screening: check inline style for extremely small dimensions
+                    #     style = img.get("style", "").lower()
+                    #     if "width:1px" in style or "height:1px" in style:
+                    #         continue
+                    #     try:
+                    #         base64_data = self.get_image_base64(self.page, blob_url)
+                    #         if (
+                    #             base64_data
+                    #             and "R0lGODlhAQABAIAAAAAAAP" not in base64_data
+                    #         ):
+                    #             img_num += 1  # Increment image counter
+                    #             images[str(img_num)] = (
+                    #                 base64_data  # Add image to dict with string key
+                    #             )
+                    #     except Exception as e:
+                    #         print(f"Failed to get image data: {e}")
+
                     for img in img_tags:
+                        # Get the Playwright element handle for the <img>
+                        img_handle = self.page.query_selector(
+                            f"img[src='{img.get('src')}']"
+                        )
+                        if not img_handle:
+                            continue
+
                         blob_url = img.get("src")
                         if not blob_url:
                             continue
 
-                        # Screening: skip known placeholder blobs (e.g., 1x1 transparent GIF)
+                        # Skip known placeholders
                         if "R0lGODlhAQABAIAAAAAAAP" in blob_url:
                             continue
 
-                        # Screening: check inline style for extremely small dimensions
+                        # Skip tiny images
                         style = img.get("style", "").lower()
                         if "width:1px" in style or "height:1px" in style:
                             continue
 
                         try:
-                            base64_data = self.get_image_base64(self.page, blob_url)
-                            if base64_data and "R0lGODlhAQABAIAAAAAAAP" not in base64_data:
-                                images.append(base64_data)
+                            # Pass the element handle, not the blob_url string
+                            base64_data = self.get_image_base64(self.page, img_handle)
+                            if (
+                                base64_data
+                                and "R0lGODlhAQABAIAAAAAAAP" not in base64_data
+                            ):
+                                img_num += 1
+                                images[str(img_num)] = base64_data
                         except Exception as e:
                             print(f"Failed to get image data: {e}")
 
@@ -422,63 +641,40 @@ class WhatsAppScraper:
                         continue
 
                     is_chatty_group = GROUPS.get(group_name, {}).get("chatter", False)
-                    if not is_chatty_group or (is_chatty_group and re.search(event_pattern, message_text.lower())):
-                        key = message_datetime.strftime("%Y-%m-%dT%H:%M%z")
-                        if key in messages:
-                            messages[key].append({
+                    if not is_chatty_group or (
+                        is_chatty_group
+                        and re.search(event_pattern, message_text.lower())
+                    ):
+                        # Increment message number for each valid message block
+                        message_num += 1
+                        datetime_str = message_datetime.strftime("%Y-%m-%dT%H:%M%z")
+                        key = f"{message_num}|{datetime_str}"  # Format key as "num|datetime"
+
+                        # Always create a new entry for each message block
+                        messages[key] = [
+                            {
                                 "text": message_text,
                                 "imgs": images,
-                            })
-                        else:
-                            messages[key] = [{
-                                "text": message_text,
-                                "imgs": images,
-                            }]
+                            }
+                        ]
                 except Exception as e:
                     print(f"Error parsing message: {e}")
-                    continue
+                    continue  # Continue to next potential message block
 
         return messages
 
-    def _wait_for_sync_completion(self, max_wait: int = 120, timeout: int = 900) -> bool:
-        """Wait for sync message to disappear with exponential backoff.
-
-        Args:
-            max_wait: Maximum wait time between checks in seconds (default 120)
-            timeout: Total timeout in seconds (default 600)
-        Returns:
-            bool: True if sync completed, False if timed out
-        """
-        base_wait = 1
-        current_wait = base_wait
-        start_time = time.time()
-
-        while time.time() - start_time < timeout:
-            try:
-                sync_message = self.page.locator("div:has-text('Syncing older messages. Click to see progress.')").first
-                if not sync_message.is_visible(timeout=1000):
-                    return True
-
-                print(f"Waiting for message sync... (next check in {current_wait}s)")
-                time.sleep(current_wait)
-
-                # Exponential backoff with max cap
-                current_wait = min(current_wait * 2, max_wait)
-
-            except Exception as e:
-                print(f"Error checking sync status: {e}")
-                return True  # Assume sync completed if we can't find the message
-
-        print(f"Sync wait timed out after {timeout} seconds")
-        return False
-
     def scrape_group(
-        self, group_name: str, days_back_to_process: int = 10, verbose: bool = False
+        self,
+        group_name: str,
+        last_scrape_dt,
+        days_back_to_process: int = 10,
+        verbose: bool = False,
     ) -> Optional[Dict[str, str]]:
         """Scrape messages from a WhatsApp group.
 
         Args:
             group_name: Name of the group to scrape
+            last_scrape_dt: Last scrape datetime to use as a starting point
             days_back_to_process: Number of days to look back for messages
             verbose: Whether to show sample first and last messages
 
@@ -492,14 +688,17 @@ class WhatsAppScraper:
             print("Warning: Message sync timed out")
 
         # Get target date from days_back_to_process
-        target_date = datetime.now(ZoneInfo("Asia/Kolkata")) - timedelta(days=days_back_to_process)
-
-        # Get last scrape datetime
-        last_scrape_dt = self.messages_handler.get_last_scrape_datetime()
+        target_date = datetime.now(ZoneInfo("Asia/Kolkata")) - timedelta(
+            days=days_back_to_process
+        )
 
         # Use whichever is more recent
-        start_datetime_to_scrape = max(target_date, last_scrape_dt) if last_scrape_dt else target_date
-        print(f"Looking for messages after: {start_datetime_to_scrape}")
+        start_datetime_to_scrape = (
+            max(target_date, last_scrape_dt) if last_scrape_dt else target_date
+        )
+        print(
+            f"Getting messages from {start_datetime_to_scrape.date()}. \n Last file scrape date: {last_scrape_dt.date()}"
+        )
 
         # Look for scroll to bottom button and click if present
         scroll_button = self.page.locator(SELECTORS["CHAT_SCROLL_BOTTOM_BUTTON"]).first
@@ -532,21 +731,75 @@ class WhatsAppScraper:
 
             return False
 
+        def most_recent_date():
+            """Get the most recent date in the current view."""
+            date_divs = self.page.locator(SELECTORS["MESSAGE_DATE_DIVS"]).all()
+            most_recent = None
+
+            for div in date_divs:
+                try:
+                    if div.is_visible():
+                        date_text = div.text_content().strip()
+                        parsed_date = convert_whatsapp_date(date_text)
+                        if parsed_date:
+                            if most_recent is None or parsed_date > most_recent:
+                                most_recent = parsed_date
+                except Exception as e:
+                    print(f"Failed to parse date: {e}")
+
+            return most_recent
+
         # Scroll up until target date is found
         target_found = False
         no_scroll_count = 0
+        skip_check = False
         while not target_found:
             # Check current view for target date
             target_found = check_target_date()
             if target_found:
                 break
 
+            check_on_phone_message = self.page.locator(
+                SELECTORS["USE_PHONE_MESSAGE"]
+            ).first
+            sync_paused_message = self.page.locator(
+                SELECTORS["SYNC_PAUSED_MESSAGE"]
+            ).first
+
+            if check_on_phone_message.is_visible() and not skip_check:
+                user_input = (
+                    input(
+                        f"WhatsApp Web is asking to 'Use phone' for group {group_name}. Do you want to continue? (y/n): "
+                    )
+                    .strip()
+                    .lower()
+                )
+                if user_input not in ["y", "yes"]:
+                    raise ValueError(
+                        f"User chose to stop. WhatsApp Web showing 'Use phone' message for group {group_name}."
+                    )
+                else:
+                    skip_check = True
+                print(
+                    f"Continuing scraping for group {group_name} despite 'Use phone' message..."
+                )
+
+            if sync_paused_message.is_visible():
+                raise ValueError(
+                    f"Whatsapp Web sync is paused for group {group_name}. Sync paused message is visible."
+                )
+
+            if not self._wait_for_sync_completion():
+                raise ValueError(
+                    f"Sync timed out while scraping {group_name}. Please try again later."
+                )
+
             # Check for older messages button
             older_messages = self.page.locator(SELECTORS["OLDER_MESSAGES_BUTTON"]).first
             if older_messages.is_visible():
                 print("Loading older messages...")
                 older_messages.click()
-                time.sleep(0.5)
+                time.sleep(1)
                 continue
 
             # Scroll to top
@@ -559,6 +812,8 @@ class WhatsAppScraper:
                 if no_scroll_count > 3:
                     print("Reached the top of the chat")
                     break
+                else:
+                    continue
 
             time.sleep(2)  # Wait for content to load
 
@@ -566,7 +821,9 @@ class WhatsAppScraper:
             # Handle all "Read more" buttons
             print("Expanding all 'Read more' messages...")
             while True:
-                read_more_buttons = self.page.locator(SELECTORS["READ_MORE_BUTTON"]).all()
+                read_more_buttons = self.page.locator(
+                    SELECTORS["READ_MORE_BUTTON"]
+                ).all()
                 if not read_more_buttons:
                     break
 
@@ -594,13 +851,11 @@ class WhatsAppScraper:
 
             if messages:
                 print(f"{group_name} completed: {len(messages)} messages scraped")
-                if verbose:
-                    sorted_timestamps = sorted(messages.keys())
-                    print(f"First message ({sorted_timestamps[0]}):\n{messages[sorted_timestamps[0]][:200]}...")
-                    print(f"Last message ({sorted_timestamps[-1]}):\n{messages[sorted_timestamps[-1]][:200]}...")
+                print("-" * 40)
                 return messages
 
             print(f"{group_name} completed: 0 messages scraped")
+            print("-" * 40)
             return None
 
     def find_groups(self, groups_list: List[str], days_back: int = 7) -> set:
@@ -615,7 +870,7 @@ class WhatsAppScraper:
         """
         # If test_run is True, randomly select 3 groups
         if self.test_run:
-            groups_list = ["Bangalore IRLs"]
+            groups_list = ["BLR Events Hub"]
 
         if not self.navigate_to_archived():
             print("Could not access archived chats")
@@ -635,6 +890,8 @@ class WhatsAppScraper:
         start_time = time.time()
         timeout = 30 * 60  # 30 minutes timeout
 
+        last_scrape_dt = self.messages_handler.get_last_scrape_datetime()
+
         # Get container height and calculate fixed scroll amount (70%)
         container_height = scroll_container.evaluate("el => el.clientHeight")
         scroll_amount = int(container_height * 0.7)
@@ -649,9 +906,15 @@ class WhatsAppScraper:
 
             # Check each visible group
             for element in group_elements:
-                group_name = element.text_content()
+                try:
+                    group_name = element.text_content(timeout=5 * 1000)
+                except TimeoutError as e:
+                    print(f"Timeout while getting group name: {e}")
+                    break
                 # Check if any name in remaining_groups is contained within this group name
-                matching_groups = [g for g in remaining_groups if g.lower() in group_name.lower()]
+                matching_groups = [
+                    g for g in remaining_groups if g.lower() in group_name.lower()
+                ]
                 if matching_groups:
                     if len(matching_groups) > 1:
                         raise Exception(
@@ -666,19 +929,27 @@ class WhatsAppScraper:
 
                         # Wait for sync to complete after clicking group
                         if not self._wait_for_sync_completion():
-                            print(f"Warning: Message sync timed out for {matched_group}")
+                            print(
+                                f"Warning: Message sync timed out for {matched_group}"
+                            )
                             continue
 
                         # Verify announcement group if needed
                         if not self._verify_announcement_group(matched_group):
-                            print(f"Skipping {matched_group}: Not the announcement group we're looking for")
+                            print(
+                                f"Skipping {matched_group}: Not the announcement group we're looking for"
+                            )
                             continue
 
-                        if messages := self.scrape_group(matched_group, days_back):
+                        if messages := self.scrape_group(
+                            matched_group, last_scrape_dt, days_back
+                        ):
                             # Add group data with messages
                             group_data = {
                                 "group_name": matched_group,
-                                "created_at": datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%Y-%m-%dT%H:%M%z"),
+                                "created_at": datetime.now(
+                                    ZoneInfo("Asia/Kolkata")
+                                ).strftime("%Y-%m-%dT%H:%M%z"),
                                 "messages": messages,
                             }
                             groups_data.append(group_data)
@@ -686,12 +957,22 @@ class WhatsAppScraper:
                         found_groups.add(group_name)
                         remaining_groups.remove(matched_group)
 
+                        print(f"Groups remaining: {len(remaining_groups)}")
+                        if len(remaining_groups) == 0:
+                            print("All groups found!")
+                            break
+                        elif len(remaining_groups) < 3:
+                            print(f"Remaining groups: {remaining_groups}")
+
             # Calculate new scroll position
             new_scroll_position = last_scroll_position + scroll_amount
             current_scroll_height = scroll_container.evaluate("el => el.scrollHeight")
 
             # Check if we've reached the bottom
-            if new_scroll_position >= current_scroll_height or new_scroll_position <= last_scroll_position:
+            if (
+                new_scroll_position >= current_scroll_height
+                or new_scroll_position <= last_scroll_position
+            ):
                 print("Reached end of archived chats")
                 break
 

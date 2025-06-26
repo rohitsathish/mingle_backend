@@ -5,7 +5,17 @@ import hashlib
 from collections import defaultdict
 from typing import Dict, List, Tuple
 
+#%%
 
+#from config import GROUP_CONTACT_DETAILS
+from pathlib import Path
+
+os.chdir(Path.cwd().parent)
+from config import GROUP_CONTACT_DETAILS
+
+contact_details = GROUP_CONTACT_DETAILS.get("BLR Events Hub")
+contact_info = " or ".join([f"{k}: {v}" for k, v in contact_details.items()])
+contact_info
 # %%
 def check_event_id_duplicates(date_str: str) -> Tuple[bool, Dict[str, List[dict]]]:
     """

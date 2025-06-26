@@ -8,7 +8,12 @@ from zoneinfo import ZoneInfo
 import glob
 from unidecode import unidecode
 
-from config import NEW_FILE_THRESHOLD, GROUP_SCRAPE_THRESHOLD, MESSAGES_DIR, MESSAGES_JSON_PATH
+from config import (
+    NEW_FILE_THRESHOLD,
+    GROUP_SCRAPE_THRESHOLD,
+    MESSAGES_DIR,
+    MESSAGES_JSON_PATH,
+)
 
 
 class MessagesHandler:
@@ -23,7 +28,13 @@ class MessagesHandler:
         files = glob.glob(pattern)
         if not files:
             return None
-        return max(files, key=os.path.getctime)
+
+        latest_file = max(files, key=os.path.getctime)
+        latest_time = os.path.getctime(latest_file)
+        print(
+            f"Most recent file name and creation time: {os.path.basename(latest_file)}, {datetime.fromtimestamp(latest_time)}"
+        )
+        return latest_file
 
     def _clean_message_text(self, text: str) -> str:
         """Clean message text while preserving single newlines."""
@@ -70,7 +81,9 @@ class MessagesHandler:
         """Create messages JSON file with cleaned data."""
         try:
             output_data = {
-                "created_at": datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%Y-%m-%dT%H:%M%z"),
+                "created_at": datetime.now(ZoneInfo("Asia/Kolkata")).strftime(
+                    "%Y-%m-%dT%H:%M%z"
+                ),
                 "whatsapp_groups": groups_data,
             }
             cleaned_data = self._clean_dict(output_data)
@@ -93,13 +106,22 @@ class MessagesHandler:
         if not latest_file:
             return None
 
-        try:
-            with open(latest_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                created_at = data.get("created_at")
-                if created_at:
-                    return datetime.fromisoformat(created_at)
-        except Exception as e:
-            print(f"Error reading messages file: {e}")
-        return None
+        with open(latest_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            created_at = data.get("created_at")
+            if created_at:
+                try:
+                    # Handle standard ISO format with timezone offset
+                    # Convert timezone format from +0530 to +05:30 if needed
+                    if "+" in created_at and ":" not in created_at.split("+")[1]:
+                        offset = created_at.split("+")[1]
+                        if len(offset) == 4:
+                            formatted_offset = f"+{offset[:2]}:{offset[2:]}"
+                            created_at = created_at.split("+")[0] + formatted_offset
 
+                    return datetime.fromisoformat(created_at)
+                except ValueError:
+                    print(f"Error parsing datetime: {created_at}")
+                    return None
+
+        return None

@@ -1,3 +1,40 @@
-playwright==1.40.0
-beautifulsoup4==4.12.2
-python-dotenv==1.0.0
+# Python version: 3.10
+
+# Web Automation
+playwright>=1.32.0
+
+# Core dependencies
+fastapi>=0.95.0
+uvicorn>=0.22.0
+pydantic>=2.0.0
+python-dotenv>=1.0.0
+
+
+# Date and Time
+python-dateutil>=2.8.2
+
+# Networking & API
+httpx>=0.24.0
+requests>=2.31.0
+
+# AI and LLM
+google-generativeai>=0.3.0
+openai>=1.0.0
+instructor>=0.5.0
+tenacity>=8.2.0
+
+# Rate limiting and async
+aiolimiter>=1.1.0
+
+# Caching
+diskcache>=5.0.0
+
+# Parsing and text processing
+markdown>=3.4.0
+beautifulsoup4>=4.11.0
+regex>=2022.0.0
+validators>=0.20.0
+tldextract>=3.4.0
+
+# Utilities
+tqdm>=4.64.0

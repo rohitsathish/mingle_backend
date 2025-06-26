@@ -8,33 +8,33 @@ from zoneinfo import ZoneInfo
 MESSAGES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "messages")
 
 # Time deltas
-NEW_FILE_THRESHOLD = timedelta(hours=12)  # Create new file if last file is older than this
-GROUP_SCRAPE_THRESHOLD = timedelta(hours=12)  # Rescrape group if last scrape is older than this
+NEW_FILE_THRESHOLD = timedelta(
+    hours=12
+)  # Create new file if last file is older than this
+GROUP_SCRAPE_THRESHOLD = timedelta(
+    hours=12
+)  # Rescrape group if last scrape is older than this
 
 
 # Number of days to look back for messages
-DAYS_BACK_TO_PROCESS = 7
+DAYS_BACK_TO_PROCESS = 10
+
+# Currently in main chat - Swapbook, the reading social, Under the lamp, Twotablesclub, Read a kitaab announcement group
+# Yet to add board gaming groups
 
 # Group configurations with chatter flag
 GROUPS: Dict[str, Dict[str, bool]] = {
     "HUMAN LIBRARY BENGALURU": {"chatter": False},
     "Copper + Cloves Happenings": {"chatter": False},
     "the STUDIO by Copper + Cloves": {"chatter": False},
-    "The Reading Social": {"chatter": False},
-    "Read A Kitaab: Bangalore": {"chatter": True},
     "BCC Community": {"chatter": False},
     "HSR Meetups Official": {"chatter": False},
     "BLR Events Hub": {"chatter": False},
-    "Events BLR-BYOB": {"chatter": False},
     "No Pressure Improv!": {"chatter": False},
     "Courtyard Community": {"chatter": False},
     "New Acropolis Community": {"chatter": False},
-    "Fit Club Bengaluru": {"chatter": True},
-    "Sustainability101": {"chatter": True},
-    "Terra.do Bangalore": {"chatter": True},
     "The Parallel Cinema Club": {"chatter": False},
     "Science Gallery Bengaluru": {"chatter": False},
-    "Bookmarks Lahe Lahe": {"chatter": True},
     "Sakura Screenings": {"chatter": False},
     "BangaloreDrumsCollective": {"chatter": False},
     "Atta Galatta - Events": {"chatter": False},
@@ -44,19 +44,32 @@ GROUPS: Dict[str, Dict[str, bool]] = {
     "The UnListed Club": {"chatter": False},
     "Bangalore IRLs": {"chatter": False},
     "Bengaluru Social": {"chatter": False},
-    "MOSAMBI: Bengaluru": {"chatter": True},
     "MAP Youth Collective": {"chatter": False},
     "Dialogues Friends": {"chatter": False},
-    "Putting Scene - 15": {"chatter": False},
+    # "Putting Scene - 15": {"chatter": False},
     "Ekta's Gatherings": {"chatter": False},
-    "SanimaWaale": {"chatter": True, "announce_gp": True},
+    "BlrGrooveCo": {"chatter": False},
+    # Chatty groups
+    "BYOB-Bangalore": {"chatter": True},
+    # "The Reading Social": {"chatter": True},
+    # "Read A Kitaab: Bangalore": {"chatter": True},
+    "Events BLR-BYOB": {"chatter": True},
+    "Fit Club Bengaluru": {"chatter": True},
+    "Sustainability101": {"chatter": True},
+    "Terra.do Bangalore": {"chatter": True},
+    "Bookmarks Lahe Lahe": {"chatter": True},
+    "MOSAMBI: Bengaluru": {"chatter": True},
+    "BSS monthly event updates": {"chatter": True},
+    # Announcement Group Verification
+    "Sanimawaale": {"chatter": True, "announce_gp": True},
 }
 
-# to extend - BYOB-Bangalore
-
-# "Atta Galatta Book Club": {"chatter": True},
-
-# Yet to add board gaming groups
+GROUP_CONTACT_DETAILS: Dict[str, Dict[str, str]] = {
+    "BLR Events Hub": {
+        "Instagram": "https://instagram.com/blreventshub/",
+        "WhatsApp Group": "https://chat.whatsapp.com/DIlXUSSkjQ95uFiYrfZ03v",
+    }
+}
 
 PRIVATE_GROUPS: Dict[str, Dict[str, bool]] = {
     "Poker club HSR": {"chatter": True},
@@ -68,7 +81,8 @@ PRIVATE_GROUPS: Dict[str, Dict[str, bool]] = {
 
 # Output file path
 MESSAGES_JSON_PATH = os.path.join(
-    MESSAGES_DIR, f"messages_{datetime.now(ZoneInfo('Asia/Kolkata')).strftime('%Y%m%d_%H%M')}.json"
+    MESSAGES_DIR,
+    f"messages_{datetime.now(ZoneInfo('Asia/Kolkata')).strftime('%Y%m%d_%H%M')}.json",
 )
 
 # Event-related patterns for filtering messages in verbose groups
@@ -131,16 +145,21 @@ EVENT_PATTERNS = [
 
 # DOM Selectors for WhatsApp Web Elements
 SELECTORS = {
+    "MAIN_PAGE_HEADER": 'button[aria-label="Chats"]',
     "ARCHIVED_TEXT": 'div:text-is("Archived")',
     "ARCHIVED_HEADER": 'h1:has-text("Archived")',
     "GROUP_CONTAINER": 'div[role="group"]',
     "ARCHIVED_GROUPS": '//h1[text()="Archived"]/ancestor::header/following-sibling::div//div[@role="gridcell"]//span[@dir="auto"]',
     "CHAT_CONTAINER": "main",
     "SCROLL_CONTAINER": '//h1[text()="Archived"]/ancestor::header/following-sibling::div',
+    "SYNC_ICON": 'div[data-icon*="sync"]:has(> div:contains("sync"))',
     "CHAT_SCROLL_BOTTOM_BUTTON": 'div[role="button"][aria-label="Scroll to bottom"]',
-    "READ_MORE_BUTTON": 'div[role="button"]:text-is("Read more")',
+    "READ_MORE_BUTTON": 'div[class*="copyable-text"] > div > div[role="button"]:text-is("Read more")',
     "MESSAGE_DATE_DIVS": 'div[role="application"] > div[tabindex="-1"] > div > span[dir="auto"]',
-    "OLDER_MESSAGES_BUTTON": ':text-matches("click here to get older messages|Use WhatsApp on your phone to see older")',
+    "OLDER_MESSAGES_BUTTON": ':text-matches("click here to get older messages", "i")',
+    "USE_PHONE_MESSAGE": ':text-matches("Use WhatsApp on your phone to see older", "i")',
+    "SYNC_PAUSED_MESSAGE": ':text-matches("Syncing paused. Open whatsapp", "i")',
+    "SYNC_PROGRESS_MESSAGE": ':text-matches("Syncing older messages", "i")',
     "CHAT_SCROLL_CONTAINER": 'div[id="main"] > div > div[class*="copyable-area"] > div[tabindex="0"]',
     "MESSAGE_CONTAINER": 'div[role="application"] > div',
     "MESSAGE_TEXT": 'span[dir="ltr"]',
@@ -153,16 +172,8 @@ CATEGORY_TAG_LIST = {
         "reading",
         "books",
     ],
-    "Speaking & Discussion": [
-        "debate",
-        "storytelling",
-        "discussion"
-    ],
-    "Movies & Screenings": [
-        "movie night",
-        "screening",
-        "short films"
-    ],
+    "Speaking & Discussion": ["debate", "storytelling", "discussion"],
+    "Movies & Screenings": ["movie night", "screening", "short films"],
     "Performing Arts": [
         "theatre",
         "drama",
@@ -188,12 +199,9 @@ CATEGORY_TAG_LIST = {
         "board games",
         "d&d",
         "dungeons & dragons",
-        "chess meetup"
+        "chess meetup",
     ],
-    "Open Mic & Poetry": [
-        "poetry jam",
-        "open mic night"
-    ],
+    "Open Mic & Poetry": ["poetry jam", "open mic night"],
     "Learning & Education": [
         "workshop",
         "class",
@@ -209,7 +217,7 @@ CATEGORY_TAG_LIST = {
         "charity",
         "fundraiser",
         "ngo event",
-        "awareness drive"
+        "awareness drive",
     ],
     "Sports & Fitness": [
         "sports",
@@ -240,7 +248,7 @@ CATEGORY_TAG_LIST = {
         "family event",
         "family-friendly",
         "kids activity",
-        "parenting workshop"
+        "parenting workshop",
     ],
     "Art & Craft": [
         "art fair",
@@ -249,32 +257,18 @@ CATEGORY_TAG_LIST = {
         "art show",
         "handicrafts",
         "artisan market",
-        "art gallery"
+        "art gallery",
     ],
-    "Health & Wellness": [
-        "mental health",
-        "yoga",
-        "meditation"
-    ],
+    "Health & Wellness": ["mental health", "yoga", "meditation"],
     "Travel & Adventure": [
         "hike",
         "trip",
     ],
-    "Science & Tech": [
-        "science lecture",
-        "science gallery"
-    ],
-    "Religion & Spirituality": [
-        "astrology",
-        "tarot reading",
-        "bhajan"
-    ],
-    "Pets & Animals": [
-        "pet adoption",
-        "wildlife retreat"
-    ]
+    "Science & Tech": ["science lecture", "science gallery"],
+    "Religion & Spirituality": ["astrology", "tarot reading", "bhajan"],
+    "Pets & Animals": ["pet adoption", "wildlife retreat"],
 }
 
-#%%
+# %%
 
 list(CATEGORY_TAG_LIST.keys())
