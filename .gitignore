@@ -201,9 +201,6 @@ config_llm.py
 ehthumbs.db
 Thumbs.db
 
-# Project-specific exclusions
-markdowner/mingle_backend.md
-
 # Specific Files
 llm_parsing/api_t.py
 markdowner/
