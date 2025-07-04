@@ -10,9 +10,9 @@ from typing import Any, Dict, List, Optional
 import tiktoken
 from urlextract import URLExtract
 
-from config_llm import (
+from config import (
     MESSAGES_DIR,
-    OPENROUTER_MODELS,
+    MODELS,
     SYSTEM_PROMPT,
     WORKING_FILE_SUFFIX,
     EventResponse,

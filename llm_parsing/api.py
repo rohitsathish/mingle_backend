@@ -19,8 +19,9 @@ import httpx
 import instructor
 import tenacity
 from aiolimiter import AsyncLimiter  # Added aiolimiter
-from config_llm import JINA_BASE_URL, OPENROUTER_API_KEYS, URL_CACHE
-from dotenv import load_dotenv
+from src.parser.info.models import URL_CACHE
+from config.config import OPENROUTER_API_KEYS, GEMINI_API_KEY
+from config.config import OPENROUTER_URL
 from openai import AsyncOpenAI
 from openai import RateLimitError as OpenAIRateLimitError  # Import openai's error
 from openai._exceptions import APIStatusError
@@ -49,8 +50,9 @@ LLM_API_RATE_PERIOD = 2  # Seconds
 llm_limiter = AsyncLimiter(LLM_API_RATE_LIMIT, LLM_API_RATE_PERIOD)
 
 
-genai.configure(api_key="AIzaSyA6VcT0WFKyHhzevEsGibasEXi394UU6FY")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+# Configure Gemini with centralized config
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
 
 
 # %% Helper function to parse data URI
@@ -74,10 +76,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # %% Environment and Constants
-load_dotenv()
-JINA_API_KEY = "jina_cb0a7bc80b514d6088394156373e96dc1JeC0D7OJXMdLJvV_b_TCZhfzrUi"
-
-OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+# OPENROUTER_URL is now imported from config.base
 # Ensure OPENROUTER_API_KEYS is loaded correctly as a list
 if not isinstance(OPENROUTER_API_KEYS, list):
     # Log error but don't raise immediately, handle in the function if route='openrouter'
@@ -116,77 +115,7 @@ def clear_cache():
 # clear_cache()  # Uncomment to clear the cache
 
 
-# %% get_link_markdown (Keep as is, added logging)
-async def get_link_markdown(
-    url: str, post: bool = False, use_cache: bool = True
-) -> Optional[str]:
-    """Convert URL content to markdown using Jina API via httpx, with diskcache."""
-    url = unquote(url)  # Ensure URL is decoded before use
-
-    if use_cache:
-        cache_key = f"jina:{url}"
-        cached = cache.get(cache_key)
-        if cached is not None:
-            logger.info(f"[CACHE HIT] Jina API for URL: {url}")
-            return cached
-
-    # logger.debug(f"Fetching markdown for URL: {url}")
-    try:
-        encoded_url = quote_plus(url)
-        headers = {
-            "Authorization": f"Bearer {JINA_API_KEY}",
-            "X-Timeout": "300",
-            "X-Respond-With": "readerlm-v2",
-            "X-Base": "final",  # follows redirects
-            "X-Return-Format": "markdown",  # html returns a very long response, not going to work, text doesn't get the full response
-            # "X-Wait-For-Selector": "body, span",
-            "X-Retain-Images": "none",
-            "X-No-Cache": "true",
-            "X-Proxy": "auto",
-            "X-With-Iframe": "true",
-            "X-With-Shadow-Dom": "true",
-            "X-Engine": "cf-browser-rendering",
-            # "Accept": "text/event-stream",  # Stream format
-        }
-        if post:
-            data = {
-                "url": f"{encoded_url}",
-                "instruction": 'Return all event-related information comprehensively. If no such information, just return "Not event related".',
-            }
-
-        start_time = time.time()
-        if post:
-            response = await HTTPX_CLIENT.post(
-                f"{JINA_BASE_URL}{encoded_url}", headers=headers, json=data
-            )
-        else:
-            response = await HTTPX_CLIENT.get(
-                f"{JINA_BASE_URL}{encoded_url}", headers=headers
-            )
-        elapsed_time = time.time() - start_time
-        logger.info(f"Jina API response in {elapsed_time:.2f} seconds")
-
-        if response.status_code == 200:
-            content = response.text
-            if use_cache:
-                cache.set(cache_key, content, expire=60 * 60 * 24 * 7)  # 1 week expiry
-            return content
-        else:
-            error_detail = response.text if response.text else "No details"
-            logger.error(
-                f"Error fetching URL {url}: Status {response.status_code} - {error_detail}"
-            )
-            response.raise_for_status()  # Raise for non-2xx
-
-    except httpx.HTTPStatusError as e:
-        logger.error(f"HTTP error processing URL {url}: {e}")
-        return None
-    except httpx.RequestError as e:
-        logger.error(f"Request error processing URL {url}: {e}")
-        return None
-    except Exception as e:
-        logger.error(f"Unexpected error processing URL {url}: {str(e)}")
-        return None
+# %% Jina functionality moved to extra/jina_utils.py
 
 
 # %% Helper Functions for Tenacity Retry Logic
@@ -588,11 +517,8 @@ async def instructor_chat_completion(
                 logger.error("GEMINI_API_KEY environment variable not set.")
                 raise ValueError("GEMINI_API_KEY is not configured.")
         elif route == "chutes" or route == "copilot":
-            # Use the LITELLM_API_KEY env var or fallback to the default chutes key
-            api_key = os.getenv(
-                "LITELLM_API_KEY",
-                "cpk_124e1b76efc446f99bbc7041356768c4.60f6fe94168451c08dcd92b124e6b532.sebtU7pEmnZfMPyCq07NidXRaK5gQWn9",
-            )
+            # Use the LITELLM_API_KEY env var
+            api_key = os.getenv("LITELLM_API_KEY")
             if not api_key:
                 logger.error(
                     "LITELLM_API_KEY environment variable not set and no fallback key available."
@@ -1902,10 +1828,9 @@ async def crawl_and_extract_event_details_from_urls(urls: List[str]) -> Dict[str
     )
 
     # LLM setup
-    litellm.api_key = os.getenv(
-        "LITELLM_API_KEY",
-        "cpk_124e1b76efc446f99bbc7041356768c4.60f6fe94168451c08dcd92b124e6b532.sebtU7pEmnZfMPyCq07NidXRaK5gQWn9",
-    )
+    litellm.api_key = os.getenv("LITELLM_API_KEY")
+    if not litellm.api_key:
+        print("WARNING: LITELLM_API_KEY not found in environment variables.")
 
     llm_markdown_route = "chutes"
 

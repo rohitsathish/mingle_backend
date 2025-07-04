@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional
 import re
 import aiohttp
 from dotenv import load_dotenv
-from config import GROUP_CONTACT_DETAILS
+from config import GROUP_CONTACT_DETAILS, MESSAGES_DIR
 
 # python -m db_handler.upload2 events_0625_1635_gemini-2.5-flas_messages_20250623_1541.json
 
@@ -217,8 +217,12 @@ class EventUploader:
                 else:
                     place_info = await self.fetch_place_details(f"{venue_name}, {area}")
             elif raw.get("source_whatsapp_group") in GROUP_CONTACT_DETAILS:
-                contact_details = GROUP_CONTACT_DETAILS.get(raw.get("source_whatsapp_group"), {})
-                contact_info = " or ".join([f"{k}: {v}" for k, v in contact_details.items()])
+                contact_details = GROUP_CONTACT_DETAILS.get(
+                    raw.get("source_whatsapp_group"), {}
+                )
+                contact_info = " or ".join(
+                    [f"{k}: {v}" for k, v in contact_details.items()]
+                )
                 contact_string = f"Venue details for this event need to be obtained by contacting the organizer at {contact_info}"
             else:
                 raise ValueError(

@@ -9,8 +9,6 @@ import glob
 from unidecode import unidecode
 
 from config import (
-    NEW_FILE_THRESHOLD,
-    GROUP_SCRAPE_THRESHOLD,
     MESSAGES_DIR,
     MESSAGES_JSON_PATH,
 )

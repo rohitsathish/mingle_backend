@@ -1,8 +1,7 @@
 # %%
 from playwright.sync_api import sync_playwright, Page, Browser, TimeoutError
-from bs4 import BeautifulSoup
 from typing import Optional, Dict, List, Tuple
-from messages_handler import MessagesHandler
+from src.scraper.messages_handler import MessagesHandler
 import json
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
@@ -13,8 +12,9 @@ import re
 import random
 
 
-from config import GROUPS, MESSAGES_JSON_PATH, SELECTORS, EVENT_PATTERNS
-from whatsapp_day_to_date import convert_whatsapp_date
+from config import GROUPS, MESSAGES_JSON_PATH, SELECTORS, CHROME_PROFILE_DIR
+from src.scraper.utils.date_handler import convert_whatsapp_date
+from src.scraper.message_parser import MessageParser
 
 
 class WhatsAppScraper:
@@ -61,6 +61,8 @@ class WhatsAppScraper:
         self.test_run = test_run
         # Initialize messages handler
         self.messages_handler = MessagesHandler()
+        # Initialize message parser (will be set when page is available)
+        self.message_parser = None
 
     def is_port_in_use(self) -> bool:
         """Check if Chrome debugging port is in use."""
@@ -100,11 +102,12 @@ class WhatsAppScraper:
                 )
                 self.context = self.browser.contexts[0]
                 self.page = self.context.pages[0]
+
+                # Initialize message parser with page
+                self.message_parser = MessageParser(self.page)
             else:
                 # Define a persistent profile folder to store all browser data
-                profile_dir = os.path.join(
-                    os.path.dirname(os.path.abspath(__file__)), "chrome_profile"
-                )
+                profile_dir = str(CHROME_PROFILE_DIR)
                 print("Starting persistent Chrome session using profile:", profile_dir)
 
                 # Launch a persistent context with flags to reduce stored data
@@ -129,6 +132,9 @@ class WhatsAppScraper:
                     self.page = self.browser.pages[0]
                 else:
                     self.page = self.browser.new_page()
+
+                # Initialize message parser with page
+                self.message_parser = MessageParser(self.page)
 
                 try:
                     cdp = self.page.context.new_cdp_session(self.page)
@@ -443,226 +449,6 @@ class WhatsAppScraper:
     #         raise Exception("Returned image appears to be a placeholder")
     #     return result
 
-    def get_image_base64(self, page, img_handle) -> str:
-        """
-        Given a Playwright element handle for an <img> with a blob URL src,
-        fetch the image as base64 while the blob is still alive.
-
-        This avoids issues with revoked blob URLs by working directly with the DOM element.
-        """
-
-        js_code = """
-        async (img) => {
-            // Use the image element's src attribute (blob URL)
-            const url = img.src;
-
-            try {
-                // Fetch blob from blob URL inside the same context owning the blob
-                const response = await fetch(url);
-                if (!response.ok) throw new Error('Failed to fetch blob URL');
-
-                const blob = await response.blob();
-
-                // Convert blob to base64 via FileReader
-                const dataUrl = await new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result);
-                    reader.onerror = reject;
-                    reader.readAsDataURL(blob);
-                });
-                return dataUrl;
-
-            } catch (err) {
-                // If fetch failed, fallback to canvas draw method
-                const canvas = document.createElement('canvas');
-                canvas.width = img.naturalWidth;
-                canvas.height = img.naturalHeight;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0);
-                return canvas.toDataURL();
-            }
-        }
-        """
-        # Evaluate the JS code with the element handle (img_handle)
-        return page.evaluate(js_code, img_handle)
-
-    def parse_messages(
-        self, html: str, start_datetime: datetime, group_name: str
-    ) -> Dict[str, List[Dict]]:
-        """Parse messages from HTML content after start_datetime.
-
-        Returns:
-            Dict where key is "message_num|datetime_str" and value is a list of message parts (text, imgs).
-        """
-        soup = BeautifulSoup(html, "html.parser")
-        messages = {}
-        message_num = 0  # Initialize message counter
-        current_date = None
-        event_pattern = "|".join(EVENT_PATTERNS)
-
-        chat_container = soup.find("div", {"role": "application", "data-tab": True})
-        if not chat_container:
-            raise ValueError("Chat container not found in HTML")
-
-        for div in chat_container.find_all("div", recursive=False):
-            # Handle date headers
-            if div.has_attr("tabindex"):
-                date_span = div.find("span", dir="auto")
-                if date_span and date_span.text:
-                    current_date = convert_whatsapp_date(date_span.text.strip())
-                    continue
-
-            if current_date and current_date >= start_datetime.date():
-                try:
-                    # Try to get the copyable text block
-                    copyable_text = div.find("div", class_="copyable-text")
-                    message_text = ""
-                    time_str = None
-
-                    if copyable_text:
-                        # Extract timestamp from data-pre-plain-text attribute
-                        pre_text = copyable_text.get("data-pre-plain-text", "")
-                        time_match = re.search(r"\[(.*?),.*?\]", pre_text)
-                        if time_match:
-                            time_str = time_match.group(1).strip()
-
-                        # Extract text content if available
-                        message_content = copyable_text.find(
-                            "span", class_="selectable-text"
-                        )
-                        if message_content:
-                            for elem in message_content.contents:
-                                if isinstance(elem, str):
-                                    message_text += elem
-                                elif elem.name == "br":
-                                    message_text += "\n"
-                                else:
-                                    message_text += elem.get_text()
-                            message_text = message_text.strip()
-                    else:
-                        # For image-only messages, try to extract timestamp from a span matching a time pattern.
-                        timestamp_span = div.find(
-                            "span",
-                            text=re.compile(
-                                r"\d{1,2}:\d{2}\s*(?:am|pm)", re.IGNORECASE
-                            ),
-                        )
-                        if timestamp_span:
-                            time_str = timestamp_span.get_text(strip=True)
-
-                    # If no timestamp is found, skip this message.
-                    if not time_str:
-                        continue
-
-                    # Parse the time string (assumes format like "7:20 am")
-                    try:
-                        message_time = datetime.strptime(time_str, "%I:%M %p").time()
-                    except Exception:
-                        continue
-
-                    message_datetime = datetime.combine(current_date, message_time)
-                    message_datetime = message_datetime.replace(
-                        tzinfo=ZoneInfo("Asia/Kolkata")
-                    )
-
-                    # Extract images from the row into a dictionary
-                    images = {}
-                    img_num = 0  # Counter for images within this message block
-                    img_tags = div.find_all(
-                        "img",
-                        attrs={
-                            "draggable": True,
-                            "style": True,
-                            "src": True,
-                            "tabindex": False,
-                        },
-                    )
-                    # for img in img_tags:
-                    #     blob_url = img.get("src")
-                    #     if not blob_url:
-                    #         continue
-
-                    #     # Screening: skip known placeholder blobs (e.g., 1x1 transparent GIF)
-                    #     if "R0lGODlhAQABAIAAAAAAAP" in blob_url:
-                    #         continue
-
-                    #     # Screening: check inline style for extremely small dimensions
-                    #     style = img.get("style", "").lower()
-                    #     if "width:1px" in style or "height:1px" in style:
-                    #         continue
-                    #     try:
-                    #         base64_data = self.get_image_base64(self.page, blob_url)
-                    #         if (
-                    #             base64_data
-                    #             and "R0lGODlhAQABAIAAAAAAAP" not in base64_data
-                    #         ):
-                    #             img_num += 1  # Increment image counter
-                    #             images[str(img_num)] = (
-                    #                 base64_data  # Add image to dict with string key
-                    #             )
-                    #     except Exception as e:
-                    #         print(f"Failed to get image data: {e}")
-
-                    for img in img_tags:
-                        # Get the Playwright element handle for the <img>
-                        img_handle = self.page.query_selector(
-                            f"img[src='{img.get('src')}']"
-                        )
-                        if not img_handle:
-                            continue
-
-                        blob_url = img.get("src")
-                        if not blob_url:
-                            continue
-
-                        # Skip known placeholders
-                        if "R0lGODlhAQABAIAAAAAAAP" in blob_url:
-                            continue
-
-                        # Skip tiny images
-                        style = img.get("style", "").lower()
-                        if "width:1px" in style or "height:1px" in style:
-                            continue
-
-                        try:
-                            # Pass the element handle, not the blob_url string
-                            base64_data = self.get_image_base64(self.page, img_handle)
-                            if (
-                                base64_data
-                                and "R0lGODlhAQABAIAAAAAAAP" not in base64_data
-                            ):
-                                img_num += 1
-                                images[str(img_num)] = base64_data
-                        except Exception as e:
-                            print(f"Failed to get image data: {e}")
-
-                    # Only skip the message if both text and images are empty.
-                    if not message_text and not images:
-                        continue
-
-                    is_chatty_group = GROUPS.get(group_name, {}).get("chatter", False)
-                    if not is_chatty_group or (
-                        is_chatty_group
-                        and re.search(event_pattern, message_text.lower())
-                    ):
-                        # Increment message number for each valid message block
-                        message_num += 1
-                        datetime_str = message_datetime.strftime("%Y-%m-%dT%H:%M%z")
-                        key = f"{message_num}|{datetime_str}"  # Format key as "num|datetime"
-
-                        # Always create a new entry for each message block
-                        messages[key] = [
-                            {
-                                "text": message_text,
-                                "imgs": images,
-                            }
-                        ]
-                except Exception as e:
-                    print(f"Error parsing message: {e}")
-                    continue  # Continue to next potential message block
-
-        return messages
-
     def scrape_group(
         self,
         group_name: str,
@@ -847,7 +633,9 @@ class WhatsAppScraper:
             # Parse messages
             print("Parsing messages...")
             html = self.page.content()
-            messages = self.parse_messages(html, start_datetime_to_scrape, group_name)
+            messages = self.message_parser.parse_messages(
+                html, start_datetime_to_scrape, group_name
+            )
 
             if messages:
                 print(f"{group_name} completed: {len(messages)} messages scraped")

@@ -101,8 +101,11 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
-# Environments
+# Environments and configuration files
 .env
+.env.local
+.env.production
+.env.development
 .venv
 env/
 venv/
@@ -141,9 +144,12 @@ Thumbs.db
 chrome_profile/
 chrome_profile_crawl4ai/
 
-# Application data directories
+# Application data directories (runtime data)
+data/
 messages/
 parsed_events/
+crawled_events/
+logs/
 
 # LLM and AI model outputs
 llm_parsing/outputs/
@@ -157,6 +163,10 @@ llm_parsing/crawl4ai\ outputs/
 # Temporary and development files
 temp/
 llm_system_prompts/
+
+# Root-level markdown files (except README.md)
+/*.md
+!README.md
 
 # Analysis and documentation (temporary)
 ANALYSIS.md
@@ -201,3 +211,4 @@ Thumbs.db
 # Specific Files
 llm_parsing/api_t.py
 markdowner/
+extra/

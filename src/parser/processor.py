@@ -1,8 +1,11 @@
-"""Message processing module for extracting events from WhatsApp messages."""
+"""Message processing module for extracting events from WhatsApp messages.
+
+Handles processing of WhatsApp message files including image analysis,
+URL extraction, and event extraction using LLM models.
+"""
 
 import asyncio
 import json
-import logging
 import os
 import platform
 import re
@@ -17,36 +20,34 @@ import tiktoken
 import tldextract
 import validators
 from aiolimiter import AsyncLimiter
-from api import (
+from config.config import MESSAGES_DIR, PARSED_EVENTS_DIR
+from config.logs import get_logger
+from src.parser.info.models import (
+    MODELS,
+    WORKING_FILE_SUFFIX,
+    get_model_for_task,
+    get_model_config,
+    get_models_for_event_extraction,
+)
+from src.parser.info.llm_prompts import SYSTEM_PROMPT, EventResponse, ImageDescription
+from src.parser.api import (
     close_httpx_client,
-    crawl_and_extract_event_details_from_urls,
     instructor_chat_completion,
 )
-from api import is_blacklisted as api_is_blacklisted
-from config import (
-    MESSAGES_DIR,
-    MODELS,
-    SYSTEM_PROMPT,
-    WORKING_FILE_SUFFIX,
-    EventResponse,
-    ImageDescription,
-)
+from src.parser.crawl4ai import crawl_and_extract_event_details_from_urls
+from src.parser.utils import is_blacklisted
 from urlextract import URLExtract
 
-# Configure minimal logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)],
-)
-logging.getLogger("httpx").setLevel(logging.WARNING)
-logger = logging.getLogger(__name__)
+# Configure logging using centralized config
+# Use proper module name even when run as __main__
+module_name = __name__ if __name__ != "__main__" else "src.llm.processor"
+logger = get_logger(module_name)
 
 # URL extractor instance
 url_extractor = URLExtract()
 
 # Semaphore for limiting concurrency
-MAX_CONCURRENT_TASKS = 5  # Maximum number of concurrent tasks
+MAX_CONCURRENT_TASKS = 5
 
 
 async def limited_process_with_progress(
@@ -56,15 +57,7 @@ async def limited_process_with_progress(
     period=1.0,
     concurrency_limit=MAX_CONCURRENT_TASKS,
 ):
-    """Process async tasks with progress tracking and concurrency limit.
-
-    Args:
-        tasks: List of coroutines to execute
-        description: Description for logging
-        concurrency_limit: Maximum number of concurrent tasks
-        rate_limit: Maximum number of tasks per period (no limit if None)
-        period: Time period in seconds for rate limiting
-    """
+    """Process async tasks with progress tracking and concurrency limit."""
     total = len(tasks)
     if not total:
         logger.info(f"No tasks to process for: {description}")
@@ -122,7 +115,7 @@ async def limited_process_with_progress(
 
 
 def create_working_file(original_filename: str, reload: bool = False) -> Dict[str, Any]:
-    """Creates or loads a working copy of a message JSON file."""
+    """Create or load a working copy of a message JSON file."""
     if not original_filename.endswith(".json"):
         raise ValueError("Filename must end with .json")
 
@@ -269,55 +262,6 @@ def create_message_chunks(
     return chunks
 
 
-async def process_with_progress(tasks, description="Processing"):
-    """Process async tasks with progress tracking."""
-    total = len(tasks)
-    if not total:
-        logger.info(f"No tasks to process for: {description}")
-        return []
-
-    logger.info(f"{description} ({total} items)...")
-    completed = 0
-
-    running_tasks = {
-        asyncio.create_task(task, name=f"task_{i}"): i for i, task in enumerate(tasks)
-    }
-    results = [None] * total
-
-    try:
-        pending = set(running_tasks.keys())
-        while pending:
-            done, pending = await asyncio.wait(
-                pending, return_when=asyncio.FIRST_COMPLETED
-            )
-
-            for task in done:
-                index = running_tasks[task]
-                try:
-                    results[index] = task.result()
-                    completed += 1
-
-                    if completed % max(1, total // 10) == 0 or completed == total:
-                        logger.info(
-                            f"Progress: {completed}/{total} ({int(completed/total*100)}%)"
-                        )
-
-                except Exception as e:
-                    for pending_task in pending:
-                        pending_task.cancel()
-                    logger.error(f"Task error at {index+1}/{total}: {str(e)}")
-                    raise
-
-    except Exception as e:
-        if pending:
-            await asyncio.gather(*pending, return_exceptions=True)
-        logger.error(f"Processing failed after completing {completed}/{total} tasks")
-        raise
-
-    logger.info(f"Completed: {completed}/{total} ({int(completed/total*100)}%)")
-    return results
-
-
 class MessagesProcessor:
     """Main class for processing WhatsApp messages and extracting events."""
 
@@ -341,8 +285,8 @@ class MessagesProcessor:
         # Collect image coroutines
         coroutines = []
         image_locations = {}
-        # model_name = "openai/chutesai/Mistral-Small-3.1-24B-Instruct-2503"
-        model_name = "openai/claude-sonnet-4"
+        model_key = get_model_for_task("image_analysis")
+        model_config = get_model_config(model_key)
 
         for group_index, group in enumerate(self.data.get("whatsapp_groups", [])):
             for msg_key, msg_list in group.get("messages", {}).items():
@@ -366,13 +310,14 @@ class MessagesProcessor:
                         )
                         coroutines.append(
                             instructor_chat_completion(
-                                model=model_name,
+                                model=model_config["name"],
                                 response_model=ImageDescription,
                                 content="Is this image related to a potential event announcement? If so, carefully and comprehensively capture all event details and information. Convey them verbosely.",
                                 image_urls=[base64_img],
-                                tool_mode="tools",
-                                route="copilot",
-                                # require_params=False,
+                                tool_mode=model_config.get("tool_mode", "tools"),
+                                route=model_config["route"],
+                                reasoning=model_config.get("reasoning"),
+                                model_key=model_key,
                             )
                         )
 
@@ -450,27 +395,19 @@ class MessagesProcessor:
         url_locations = {}
         unique_urls = set()
 
-        # Add this at the top with other imports if not already present
-        # pip install validators
-
-        # Helper functions for URL processing
         def preprocess_text_for_url_extraction(text: str) -> str:
             """Preprocess text to improve URL extraction by adding spaces before URLs."""
             if not text:
                 return text
 
             # Pattern to match URLs that are immediately preceded by text (no space)
-            # This covers common URL starters: http(s), www, ftp, and common TLDs
+            # Only match patterns that clearly indicate concatenated URLs, not legitimate domain parts
             url_patterns = [
                 r"(\w)(https?://)",  # word followed by http/https
                 r"(\w)(www\.)",  # word followed by www.
                 r"(\w)(ftp://)",  # word followed by ftp
-                # Common TLD patterns (more conservative to avoid false positives)
-                r"(\w)(\.com/)",  # word followed by .com/
-                r"(\w)(\.org/)",  # word followed by .org/
-                r"(\w)(\.net/)",  # word followed by .net/
-                r"(\w)(\.edu/)",  # word followed by .edu/
-                r"(\w)(\.gov/)",  # word followed by .gov/
+                # Note: Removed TLD patterns as they can break legitimate URLs like bookmyshow.com
+                # The URLExtract library is robust enough to handle URLs without this preprocessing
             ]
 
             processed_text = text
@@ -612,23 +549,23 @@ class MessagesProcessor:
                                 url_locations[normalized_url].append(location)
 
         # Filter URLs to remove blacklisted ones
-        # Note: Using api_is_blacklisted instead of self._is_blacklisted for consistency
-        filtered_urls = {url for url in unique_urls if not api_is_blacklisted(url)}
+        filtered_urls = {url for url in unique_urls if not is_blacklisted(url)}
         logger.info(f"Found {len(filtered_urls)} URLs to process after filtering.")
-
-        # Print filtered URLs for debugging
-        print("Filtered URLs: ", filtered_urls)
 
         if not filtered_urls:
             logger.info("No URLs to process")
             return
+
+        # Get model for HTML parsing
+        html_model_key = get_model_for_task("html_parsing")
+        logger.info(f"Using model {html_model_key} for HTML parsing")
 
         # Process URLs using Crawl4AI and LLM
         logger.info(f"Starting URL processing")
 
         try:
             results = await crawl_and_extract_event_details_from_urls(
-                list(filtered_urls)
+                list(filtered_urls), html_model_key
             )
 
             # Check if we have any successful results
@@ -643,12 +580,6 @@ class MessagesProcessor:
                 f"URL processing results: {len(successful_urls)} successful, {len(failed_urls)} failed"
             )
 
-            if failed_urls:
-                logger.warning(f"Failed URLs: {failed_urls}")
-                # for url in failed_urls:
-                #     error_info = results.get(url, {}).get("error_details", "Unknown error")
-                #     logger.warning(f"  {url}: {error_info}")
-
             if not successful_urls:
                 logger.warning(
                     "No URLs were successfully processed, but continuing to save working file"
@@ -660,7 +591,6 @@ class MessagesProcessor:
 
                 # Update data with event details
                 appended = 0
-                update_errors = 0
 
                 for url, locations in url_locations.items():
                     if url not in results:
@@ -676,9 +606,6 @@ class MessagesProcessor:
                         continue
 
                     event_details = result_data.get("event_details", {})
-                    logger.debug(
-                        f"Processing event details for {url}: is_event={event_details.get('is_event')}"
-                    )
 
                     # Build structured content to add to the message
                     content_lines = []
@@ -689,7 +616,11 @@ class MessagesProcessor:
                         )
 
                         # Add information about additional links if they exist and were processed
-                        additional_links = event_details.get("additional_links", [])
+                        # Filter out additional links that are the same as the current URL to avoid duplication
+                        additional_links = [
+                            link for link in event_details.get("additional_links", [])
+                            if link != url  # Exclude self-references
+                        ]
 
                         if additional_links:
                             content_lines.append("RELATED LINKS:")
@@ -730,12 +661,8 @@ class MessagesProcessor:
                             if prefix not in msg_part["text"]:
                                 msg_part["text"] += prefix
                                 appended += 1
-                                logger.debug(
-                                    f"Added URL content to message at location {location}"
-                                )
 
                         except (KeyError, IndexError, TypeError) as e:
-                            update_errors += 1
                             logger.error(
                                 f"Error updating message with URL content: {str(e)}"
                             )
@@ -749,48 +676,42 @@ class MessagesProcessor:
             logger.error(
                 f"URL processing failed completely, but continuing to save working file"
             )
-            results = {}
-            appended = 0
 
         # Save updated data if we have a filepath
         if self.filepath:
             with open(self.filepath, "w", encoding="utf-8") as f:
                 json.dump(self.data, f, indent=2, ensure_ascii=False)
 
-    async def extract_events(
-        self, model_list: List[Dict[str, Any]]
-    ) -> Optional[Dict[str, Any]]:
-        """Extract events from messages using specified models."""
+    async def extract_events(self) -> Optional[Dict[str, Any]]:
+        """Extract events from messages using task-based model selection."""
         logger.info("Extracting events from messages")
 
-        test_mode = len(model_list) > 1
-        output_dir = os.path.dirname(self.filepath) if self.filepath else MESSAGES_DIR
+        output_dir = str(PARSED_EVENTS_DIR)
 
-        # Prepare model configurations
+        # Get model configurations for event extraction (automatically uses multiple if configured)
+        model_keys = get_models_for_event_extraction()
+
         model_configs = []
-        for model in model_list:
-            # Get model details from the model dict
-            try:
-                model_name = model["name"]
-                token_limit = int(model.get("input_tokens", 1e5))
-                model_route = model.get("route", "openrouter")
-                model_tool_mode = model.get("tool_mode", "json")
-                model_configs.append(
-                    (model_name, token_limit, model_route, model_tool_mode)
-                )
-            except:
-                raise ValueError(
-                    f"Invalid model configuration: {model}. Ensure it has 'name' and 'input_tokens' keys."
-                )
+        for model_key in model_keys:
+            model_config = get_model_config(model_key)
+            model_name = model_config["name"]
+            token_limit = int(model_config.get("input_tokens", 1e5))
+            model_route = model_config["route"]
+            model_tool_mode = model_config.get("tool_mode", "json")
+            model_reasoning = model_config.get("reasoning")
+            model_configs.append(
+                (model_key, model_name, token_limit, model_route, model_tool_mode, model_reasoning)
+            )
+            logger.info(f"Using model {model_key} ({model_name}) for event extraction")
 
-        # Process each model - if multiple models, process them in parallel
-        if test_mode:
-            # Create coroutines for processing each model
+        # Process each model
+        if len(model_configs) > 1:
+            # Multiple models - process in parallel
             model_tasks = [
                 self._process_model(
-                    model_name, token_limit, model_route, model_tool_mode, output_dir
+                    model_key, model_name, token_limit, model_route, model_tool_mode, model_reasoning, output_dir
                 )
-                for model_name, token_limit, model_route, model_tool_mode in model_configs
+                for model_key, model_name, token_limit, model_route, model_tool_mode, model_reasoning in model_configs
             ]
 
             # Execute all model processing tasks with progress tracking
@@ -802,25 +723,27 @@ class MessagesProcessor:
             # Filter out None results
             all_results = [result for result in results if result is not None]
             logger.info(
-                f"Successfully processed {len(all_results)}/{len(model_list)} models"
+                f"Successfully processed {len(all_results)}/{len(model_configs)} models"
             )
 
-            return None  # In test mode, results are saved to files
+            return None  # In multiple model mode, results are saved to files
         else:
             # Single model - process directly
-            model_name, token_limit, model_route, model_tool_mode = model_configs[0]
-            logger.info(f"Processing with model: {model_name}")
+            model_key, model_name, token_limit, model_route, model_tool_mode, model_reasoning = model_configs[0]
+            logger.info(f"Processing with single model: {model_name}")
 
             return await self._process_model(
-                model_name, token_limit, model_route, model_tool_mode, output_dir
+                model_key, model_name, token_limit, model_route, model_tool_mode, model_reasoning, output_dir
             )
 
     async def _process_model(
         self,
+        model_key: str,
         model_name: str,
         token_limit: int,
         model_route: str,
         model_tool_mode: str,
+        model_reasoning: Optional[str],
         output_dir: str,
     ) -> Optional[Dict[str, Any]]:
         """Process messages with a specific model."""
@@ -830,10 +753,10 @@ class MessagesProcessor:
             self.data, SYSTEM_PROMPT, token_limit=token_limit
         )
 
-        # Process all chunks for this model in parallel
+        # Process all chunks for this model in parallel  
         chunk_tasks = [
             self._process_chunk(
-                chunk, model_name, model_route, model_tool_mode, i, len(chunks)
+                chunk, model_key, model_name, model_route, model_tool_mode, model_reasoning, i, len(chunks)
             )
             for i, chunk in enumerate(chunks)
         ]
@@ -858,9 +781,11 @@ class MessagesProcessor:
     async def _process_chunk(
         self,
         chunk: Dict[str, Any],
+        model_key: str,
         model: str,
         model_route: str,
         model_tool_mode: str,
+        model_reasoning: Optional[str],
         chunk_index: int,
         total_chunks: int,
     ) -> Optional[Dict[str, Any]]:
@@ -907,6 +832,8 @@ class MessagesProcessor:
                 system_prompt=SYSTEM_PROMPT,
                 tool_mode=model_tool_mode,
                 route=model_route,
+                reasoning=model_reasoning,
+                model_key=model_key,
             )
 
             chunk_result = {
@@ -938,7 +865,7 @@ class MessagesProcessor:
             # Add all events
             combined_events.extend(response.get("events", []))
 
-            # Add all new categories - structure has changed from category_updates.new_categories to just new_categories
+            # Add all new categories
             new_categories = response.get("new_categories", [])
             if new_categories:
                 combined_categories.update(new_categories)
@@ -985,42 +912,13 @@ class MessagesProcessor:
             f"Saved {len(result['events'])} events from model {model_name} to {output_path}"
         )
 
-    @staticmethod
-    def _is_blacklisted(url: str) -> bool:
-        """Check if a URL should be blacklisted."""
-        url_lower = url.lower()
-        bad_links = [
-            "maps.app.goo.gl",
-            "maps.google",
-            "chat.whatsapp.com",
-            "linktr.ee",
-            "open.spotify",
-        ]
-
-        if any(domain in url_lower for domain in bad_links):
-            return True
-
-        # Special handling for Instagram: only allow post links (/p/)
-        if "instagram.com" in url_lower and "/p/" not in url_lower:
-            return True
-
-        return False
-
 
 async def process_file(
     filename: str,
     reload: bool = False,
-    model_list: Optional[List[Dict[str, Any]]] = None,
     use_working_file: bool = False,
 ) -> None:
-    """Process a file by extracting content and events.
-
-    Args:
-        filename: The name of the file to process
-        reload: Whether to reload the original file
-        model_list: List of models to use for event extraction
-        use_working_file: If True, skip image/link processing and use existing working file
-    """
+    """Process a file by extracting content and events."""
     logger.info(f"Starting processing of file: {filename}")
 
     # Create working file
@@ -1042,8 +940,8 @@ async def process_file(
     else:
         logger.info("Using existing working file - skipping image and link processing")
 
-    # Extract events
-    await processor.extract_events(model_list)
+    # Extract events (automatically uses multiple models if configured in .env)
+    await processor.extract_events()
 
     logger.info(f"Successfully processed: {filename}")
 
@@ -1051,32 +949,17 @@ async def process_file(
 async def main() -> None:
     """Main entry point for processing WhatsApp message files."""
     try:
-        # test_filename = "messages_20250414_1145.json"
-        test_filename = "messages_20250623_1541.json"
+        test_filename = "messages_20250630_1218.json"
 
         # Configuration flags
-        reload_file = True  # Set to False to use existing working file if available
-        use_working_file = not reload_file  # Set to True to skip image/link processing
+        reload_file = True
+        use_working_file = not reload_file
 
-        # Define models to test - just list the model keys
-        model_list = [
-            MODELS["gemini-2.5-flash"],
-            # MODELS["minimax-m1"],
-            # MODELS["gemini-2.5-pro-copilot"],
-            # MODELS["o4-mini-copilot"],
-            # MODELS["deepseek-r1-0528-chutes"],
-            # MODELS["qwen3-235b"],
-            # MODELS["mai-r1"],
-            # MODELS["deepseek-r1-chutes"],
-            # MODELS["gemini-2.5-pro"],
-            # MODELS["o4-mini-high"]
-        ]
-
-        # Process file with multiple models
+        # Process file with task-based model selection
+        # Models are automatically selected based on .env configuration
         await process_file(
             test_filename,
             reload=reload_file,
-            model_list=model_list,
             use_working_file=use_working_file,
         )
 
@@ -1091,7 +974,6 @@ async def main() -> None:
                 winsound.Beep(1000, 1000)
             logger.info("Completion sound played (if supported).")
         except Exception as sound_error:
-            # Log if playing sound failed, but don't stop the script
             logger.warning(f"Could not play completion sound: {sound_error}")
 
 
