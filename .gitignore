@@ -179,6 +179,7 @@ Path
 .windsurfrules
 .cursor/
 .github/
+.claude/
 
 # API keys and sensitive data
 *.key
