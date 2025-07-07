@@ -8,9 +8,9 @@ from zoneinfo import ZoneInfo
 import glob
 from unidecode import unidecode
 
-from config import (
+from config.config import (
     MESSAGES_DIR,
-    MESSAGES_JSON_PATH,
+    get_messages_json_path,
 )
 
 
@@ -91,7 +91,7 @@ class MessagesHandler:
 
             # We do NOT override iterencode to replace '\\n'.
             # Standard JSON will store them as \n (escaped newlines).
-            with open(MESSAGES_JSON_PATH, "w", encoding="utf-8") as f:
+            with open(get_messages_json_path(), "w", encoding="utf-8") as f:
                 json.dump(cleaned_data, f, indent=2, ensure_ascii=False)
 
         except Exception as e:
