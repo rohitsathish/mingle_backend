@@ -55,25 +55,6 @@ coverage.xml
 *.mo
 *.pot
 
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-
-# Flask stuff:
-instance/
-.webassets-cache
-
-# Scrapy stuff:
-.scrapy
-
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-target/
-
 # Jupyter Notebook
 .ipynb_checkpoints
 
@@ -84,22 +65,8 @@ ipython_config.py
 # pyenv
 .python-version
 
-# pipenv
-#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
-#   However, in case of collaboration, if having platform-specific dependencies or dependencies
-#   having no cross-platform support, pipenv may install dependencies that don't work, or not
-#   install all needed dependencies.
-#Pipfile.lock
-
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow
 __pypackages__/
-
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
-
-# SageMath parsed files
-*.sage.py
 
 # Environments and configuration files
 .env
@@ -113,23 +80,10 @@ ENV/
 env.bak/
 venv.bak/
 
-# Spyder project settings
-.spyderproject
-.spyproject
-
-# Rope project settings
-.ropeproject
-
-# mkdocs documentation
-/site
-
 # mypy
 .mypy_cache/
 .dmypy.json
 dmypy.json
-
-# Pyre type checker
-.pyre/
 
 # IDE and editor files
 .vscode/
@@ -139,6 +93,18 @@ dmypy.json
 *~
 .DS_Store
 Thumbs.db
+
+# Database files
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Log files
+*.log
+
+
+# ---- User-specific files ----
 
 # Browser profiles and cache data
 chrome_profile/
@@ -151,28 +117,14 @@ parsed_events/
 crawled_events/
 logs/
 
-# LLM and AI model outputs
-llm_parsing/outputs/
-llm_parsing/.cache/
-llm_parsing/session_failures.csv
-
-# Crawl4AI outputs and cache
-llm_parsing/crawl4ai_browser_data/
-llm_parsing/crawl4ai\ outputs/
-
 # Temporary and development files
 temp/
+extra/
 llm_system_prompts/
 
 # Root-level markdown files (except README.md)
 /*.md
 !README.md
-
-# Analysis and documentation (temporary)
-ANALYSIS.md
-compiled.md
-mingle_backend.md
-Path
 
 # Tool-specific files
 .coolclinerules
@@ -181,35 +133,11 @@ Path
 .github/
 .claude/
 
-# API keys and sensitive data
-*.key
-*.pem
-config_llm.py
+# LLM and AI model outputs
+llm_parsing/outputs/
+llm_parsing/.cache/
+llm_parsing/session_failures.csv
+llm_parsing/crawl4ai*
 
-# Database files
-*.db
-*.db-journal
-*.sqlite
-*.sqlite3
-
-# Log files
-*.log
-
-# Backup files
-*.bak
-*.backup
-*.orig
-
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Specific Files
-llm_parsing/api_t.py
+# Specific Files/Folders
 markdowner/
-extra/
